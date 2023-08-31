@@ -6,6 +6,9 @@ DATASET="fakenewsnet"
 VERBOSE=False
 
 # %%
+
+
+# %%
 import os
 os.environ["CUDA_VISIBLE_DEVICES"] = str(DEVICE_NUM)
 CACHE_PATH = f"../data/caches/{MODEL_SIZE}/cache.jsonl"
@@ -32,11 +35,6 @@ print("Device Name:", torch.cuda.get_device_name(), "Device Number:", DEVICE_NUM
 # %%
 df = pd.read_csv(DATASET_PATH)
 signal_df = pd.read_csv(SIGNALS_PATH)
-
-# %%
-df["title"] = df["title"].fillna("")
-df["text"] = df["text"].fillna("")
-df["article_md5"] = df.apply(lambda x: hashlib.md5(str(x["title"]+x["text"]).encode('utf-8')).hexdigest(), axis=1)
 
 # %%
 model = llama_chat_hf(size=MODEL_SIZE)
@@ -94,8 +92,7 @@ def process(verbose=False):
             
             category_zs = category_mapping(answer_zs)
             preds.append(category_zs)
-            label_converter = lambda x: 0 if x == "real" else 1
-            true = label_converter(article_row.objective)
+            true = article_row.objective
             trues.append(true)
 
             acc = accuracy_score(trues, preds)

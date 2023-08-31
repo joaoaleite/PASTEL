@@ -84,7 +84,7 @@ class llama_chat_hf():
         prompt = system_context + user_message.strip() + " [/INST] "
 
         ans = self.get_next_word_probs(prompt, allow_abstain)
-        # ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to(self.device), max_new_tokens=max_new_tokens)
+        # ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to(self.device), max_new_tokens=256)
         # ans = self.tokenizer.decode(ans[0])
         # ans = ans.split("[/INST]")[1].strip()
         return ans
