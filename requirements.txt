@@ -2,3 +2,5 @@ snorkel==0.9.9
 accelerate==0.22.0
 torch==2.0.1
 transformers==4.32.1
+dvc==3.17.0
+dvc-gdrive==2.20.0
