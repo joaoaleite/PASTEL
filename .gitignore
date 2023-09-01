@@ -2,6 +2,7 @@
 *.jsonl
 slurm_jobs/
 *.slurm
+*.out
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
