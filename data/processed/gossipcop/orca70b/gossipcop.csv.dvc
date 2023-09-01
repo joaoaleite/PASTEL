@@ -1,0 +1,5 @@
+outs:
+- md5: 4fcbfe4f2a483be5f0af5b6b4e1b1b01
+  size: 4497004
+  hash: md5
+  path: gossipcop.csv
