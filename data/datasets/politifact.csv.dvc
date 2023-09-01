@@ -1,5 +1,5 @@
 outs:
-- md5: 9d1a425ca4974c7a1e3023c48cf2d258
-  size: 9007470
+- md5: f66ec12804c34bb66796e2c41dc5e591
+  size: 6968297
   hash: md5
   path: politifact.csv
