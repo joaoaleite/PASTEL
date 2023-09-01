@@ -17,4 +17,4 @@ if not os.path.exists(PROCESSED_FOLDER):
 df = pd.read_json(CACHE_PATH, lines=True)
 df = df.drop_duplicates(["article_md5"])
 df = df.reset_index(drop=True)
-df.to_csv(PROCESSED_FOLDER+f"{DATASET}.csv")
+df.to_csv(PROCESSED_FOLDER+f"{DATASET}.csv", index=False)
