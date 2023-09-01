@@ -24,5 +24,11 @@ df_fn = df_fn[["article_md5", "text"]]
 df = pd.read_json(CACHE_PATH, lines=True)
 df = df.merge(df_fn, on="article_md5")
 df = df.drop_duplicates(["article_md5"])
+
+df_drop = df[df["objective_pred"] == -1]
+df = df[df["objective_pred"] != -1]
+
+print(f"REMOVED {len(df_drop)} SAMPLES WITH WRONG FORMATTING ON PREDICTION VALUE.")
+
 df = df.reset_index(drop=True)
 df.to_csv(PROCESSED_FOLDER+f"{DATASET}.csv", index=False)
