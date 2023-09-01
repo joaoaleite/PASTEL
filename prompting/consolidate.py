@@ -17,6 +17,9 @@ if not os.path.exists(PROCESSED_FOLDER):
 
 df_fn = pd.read_csv(DATASET_PATH)
 df_fn = df_fn[["article_md5", "title", "text"]]
+df_fn = df_fn.fillna("")
+df_fn["text"] = df_fn.apply(lambda x: x["title"]+"\n"+x["text"], axis=1)
+df_fn = df_fn[["article_md5", "text"]]
 
 df = pd.read_json(CACHE_PATH, lines=True)
 df = df.merge(df_fn, on="article_md5")
