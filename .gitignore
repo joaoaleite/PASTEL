@@ -1,3 +1,8 @@
+*.csv
+*.jsonl
+slurm_jobs/
+*.slurm
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -88,3 +88,44 @@ class llama_chat_hf():
         # ans = self.tokenizer.decode(ans[0])
         # ans = ans.split("[/INST]")[1].strip()
         return ans
+
+class orca_llama_70b():
+    def __init__(self):
+
+        model_name = f"fangloveskari/ORCA_LLaMA_70B_QLoRA"
+        
+        # bnb_config = BitsAndBytesConfig(
+        #     load_in_4bit=True,
+        #     bnb_4bit_quant_type='nf4',
+        #     bnb_4bit_use_double_quant=True,
+        #     bnb_4bit_compute_dtype=torch.bfloat16
+        # )
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, add_eos_token=False, add_bos_token=True)
+        self.model  = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            # quantization_config=bnb_config,
+            load_in_8bit=True,
+            device_map="auto"
+        )
+        self.model = self.model.eval()
+        self.device = self.model.device
+
+    def prompt(self, user_message, system_context=None):
+        if system_context is None:
+            system_context = "### Instruction:\nYou are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe.  Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature."
+        else:
+            system_context = f"### Instruction:\n{system_context}"
+
+        prompt = f"### Input:\n{user_message.strip()}\n\n### Response:\n"
+        size_prompt = len(self.tokenizer.encode(prompt, return_tensors="pt"))
+        while size_prompt >= 4096:
+            user_message = user_message[500:]
+            prompt = f"### Input:\n{user_message.strip()}\n\n### Response:\n"
+            size_prompt = len(self.tokenizer.encode(prompt, return_tensors="pt"))
+
+        # ans1 = self.get_next_word_probs(prompt, allow_abstain)
+        ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to(self.device), max_new_tokens=1)
+        ans = self.tokenizer.decode(ans[0])
+        ans = ans.split("### Response:")[1].strip()
+        return ans
