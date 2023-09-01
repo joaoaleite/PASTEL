@@ -95,7 +95,8 @@ def process(verbose=False):
             try:
                 answer_zs = model.prompt(prompt_formatted)
             except torch.cuda.OutOfMemoryError as e:
-                continue # stop processing this example
+                prompt_formatted = prompt.format(title=article_row.title, text=article_row.text[:2000], system_context=system_context_zs, question="Does this article contain misinformation?", options="Yes/No")
+                answer_zs = model.prompt(prompt_formatted)
             
             category_zs = category_mapping(answer_zs)
             preds.append(category_zs)
@@ -124,7 +125,8 @@ def process(verbose=False):
                 try:
                     answer_ws = model.prompt(prompt_formatted_ws, system_context=system_context_ws)
                 except torch.cuda.OutOfMemoryError as e:
-                    break # stop processing this example and the next questions
+                    prompt_formatted_ws = prompt.format(title=article_row.title, text=article_row.text[:2000], question=question_row.Question, options="Yes/Unsure/No")
+                    answer_ws = model.prompt(prompt_formatted_ws, system_context=system_context_ws)
 
                 category_ws = category_mapping(answer_ws)
                 if verbose:
