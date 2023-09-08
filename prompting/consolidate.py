@@ -3,7 +3,7 @@ import os
 
 DEVICE_NUM=0
 MODEL_NAME="orca70b"
-DATASET="politifact"
+DATASET="gossipcop"
 VERBOSE=False
 
 # %%
