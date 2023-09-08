@@ -1,55 +1,29 @@
 # %%
-# Parameters
-DEVICE_NUM=0
-MODEL_SIZE=70
-MODEL_NAME="llama2_platypus"
-DATASET="politifact"
-VERBOSE=False
-
-# %%
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = str(DEVICE_NUM)
-CACHE_FOLDER = f"data/caches/{DATASET}/{MODEL_NAME}/{MODEL_SIZE}"
-CACHE_PATH = os.path.join(CACHE_FOLDER, "cache.jsonl")
-DATASET_PATH = f"data/datasets/{DATASET}.csv"
-SIGNALS_PATH = "data/signals.csv"
-
-assert os.path.exists(DATASET_PATH)
-assert os.path.exists(SIGNALS_PATH)
-if not os.path.exists(CACHE_FOLDER):
-    os.makedirs(CACHE_FOLDER)
-
-# %%
 import pandas as pd
 from utils import llama2_platypus
 import torch
 import json
 from tqdm import tqdm
 from sklearn.metrics import f1_score, accuracy_score
+import argparse
 
-# %%
-print("Device Name:", torch.cuda.get_device_name(), "Device Number:", DEVICE_NUM)
+def parse_arguments():
+    parser = argparse.ArgumentParser()
+    
+    # Define the arguments
+    parser.add_argument("--device_num", type=int, default=0)
+    parser.add_argument("--model_size", type=int, choices=[7, 13, 70], required=True)
+    parser.add_argument("--model_name", type=str, default="llama2_platypus")
+    parser.add_argument("--dataset", type=str, required=True)
+    parser.add_argument("--verbose", action="store_true")
+    
+    # Parse the arguments
+    args = parser.parse_args()
+    
+    return args
 
-# %%
-df = pd.read_csv(DATASET_PATH)
-df = df.sample(frac=1) # randomize for more effective parallel processing
-signal_df = pd.read_csv(SIGNALS_PATH)
 
-# %%
-if MODEL_NAME == "llama2_platypus":
-    model = llama2_platypus(size=MODEL_SIZE)
-else:
-    raise Exception(f"No model named {MODEL_NAME} with size {MODEL_SIZE}")
-# %%
-system_context = \
-    """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable.{abstain_context}"""
-
-prompt = """{title}\n{text}\n\n{question} ({options})"""
-abstain_context = " You are expeted to answer with 'Yes' or 'No', but you are also allowed to answer with 'Unsure' if you do not have enough information or context to provide a reliable answer."
-# abstain_context = ""
-# fake_news_context = "Fake news is false or inaccurate information, especially that which is deliberately intended to deceive." # Decreases performance.
-
-# %%
 def category_mapping(answer):
     if answer.lower().startswith("no") or answer.lower().startswith("false"):
         category = 0
@@ -74,7 +48,12 @@ def dump_cache(line, p):
         f.write(json.dumps(line)+"\n")
 
 # %%
-def process(verbose=False):
+def process(model, df, signal_df, verbose=False):
+    system_context = \
+        """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable.{abstain_context}"""
+
+    prompt = """{title}\n{text}\n\n{question} ({options})"""
+    abstain_context = " You are expeted to answer with 'Yes' or 'No', but you are also allowed to answer with 'Unsure' if you do not have enough information or context to provide a reliable answer."
     preds = []
     trues = []
     processed_records = []
@@ -141,4 +120,33 @@ def process(verbose=False):
 
 # %%
 if __name__ == "__main__":
-    process(verbose=VERBOSE)
+    args = parse_arguments()
+    DATASET = args.dataset
+    VERBOSE = args.verbose
+    MODEL_SIZE = args.model_size
+    MODEL_NAME = args.model_name
+    DEVICE_NUM = args.device_num
+
+    CACHE_FOLDER = f"data/caches/{DATASET}/{MODEL_NAME}/{MODEL_SIZE}"
+    CACHE_PATH = os.path.join(CACHE_FOLDER, "cache.jsonl")
+    DATASET_PATH = f"data/datasets/{DATASET}.csv"
+    SIGNALS_PATH = "data/signals.csv"
+
+    assert os.path.exists(DATASET_PATH)
+    assert os.path.exists(SIGNALS_PATH)
+    if not os.path.exists(CACHE_FOLDER):
+        os.makedirs(CACHE_FOLDER)
+
+    df = pd.read_csv(DATASET_PATH)
+    df = df.sample(frac=1) # randomize for more effective parallel processing
+    signal_df = pd.read_csv(SIGNALS_PATH)
+
+    # %%
+    if MODEL_NAME == "llama2_platypus":
+        model = llama2_platypus(size=MODEL_SIZE)
+    else:
+        raise Exception(f"No model named {MODEL_NAME} with size {MODEL_SIZE}")
+
+
+    print("Device Name:", torch.cuda.get_device_name())
+    process(model, df, signal_df, verbose=VERBOSE)
