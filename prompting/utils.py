@@ -89,10 +89,12 @@ class llama_chat_hf():
         # ans = ans.split("[/INST]")[1].strip()
         return ans
 
-class orca_llama_70b():
-    def __init__(self):
-
-        model_name = f"fangloveskari/ORCA_LLaMA_70B_QLoRA"
+class llama2_platypus():
+    def __init__(self, size):
+        if size in [7, 13, 70]:
+            model_name = f"garage-bAInd/Platypus2-{size}B"
+        else:
+            raise Exception(f"Size {size} not available for Llama. Choose 7, 13 or 70.")
         
         # bnb_config = BitsAndBytesConfig(
         #     load_in_4bit=True,
@@ -105,7 +107,7 @@ class orca_llama_70b():
         self.model  = AutoModelForCausalLM.from_pretrained(
             model_name,
             # quantization_config=bnb_config,
-            load_in_8bit=True,
+            # load_in_8bit=True,
             device_map="auto"
         )
         self.model = self.model.eval()

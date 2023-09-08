@@ -1,14 +1,15 @@
 # %%
 # Parameters
 DEVICE_NUM=0
-MODEL_NAME="orca70b"
+MODEL_SIZE=70
+MODEL_NAME="llama2_platypus"
 DATASET="politifact"
 VERBOSE=False
 
 # %%
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = str(DEVICE_NUM)
-CACHE_FOLDER = f"data/caches/{DATASET}/{MODEL_NAME}/"
+CACHE_FOLDER = f"data/caches/{DATASET}/{MODEL_NAME}/{MODEL_SIZE}"
 CACHE_PATH = CACHE_FOLDER + "cache.jsonl"
 DATASET_PATH = f"data/datasets/{DATASET}.csv"
 SIGNALS_PATH = "data/signals.csv"
@@ -20,12 +21,11 @@ if not os.path.exists(CACHE_FOLDER):
 
 # %%
 import pandas as pd
-from utils import llama_chat_hf, orca_llama_70b
+from utils import llama2_platypus
 import torch
 import json
 from tqdm import tqdm
-from sklearn.metrics import f1_score, accuracy_score, classification_report
-import hashlib
+from sklearn.metrics import f1_score, accuracy_score
 
 # %%
 print("Device Name:", torch.cuda.get_device_name(), "Device Number:", DEVICE_NUM)
@@ -36,16 +36,10 @@ df = df.sample(frac=1) # randomize for more effective parallel processing
 signal_df = pd.read_csv(SIGNALS_PATH)
 
 # %%
-if MODEL_NAME == "llama7b":
-    model = llama_chat_hf(size=7)
-elif MODEL_NAME == "llama13b":
-    model = llama_chat_hf(size=13)
-elif MODEL_NAME == "llama70b":
-    model = llama_chat_hf(size=70)
-elif MODEL_NAME == "orca70b":
-    model = orca_llama_70b()
+if MODEL_NAME == "llama2_platypus":
+    model = llama2_platypus(size=MODEL_SIZE)
 else:
-    raise Exception(f"No model named {MODEL_NAME}")
+    raise Exception(f"No model named {MODEL_NAME} with size {MODEL_SIZE}")
 # %%
 system_context = \
     """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable.{abstain_context}"""
@@ -57,9 +51,9 @@ abstain_context = " You are expeted to answer with 'Yes' or 'No', but you are al
 
 # %%
 def category_mapping(answer):
-    if answer.lower().startswith("no"):
+    if answer.lower().startswith("no") or answer.lower().startswith("false"):
         category = 0
-    elif answer.lower().startswith("yes"):
+    elif answer.lower().startswith("yes") or answer.lower().startswith("true"):
         category = 1
     else:
         category = -1
