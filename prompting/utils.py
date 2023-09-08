@@ -107,7 +107,7 @@ class llama2_platypus():
         self.model  = AutoModelForCausalLM.from_pretrained(
             model_name,
             # quantization_config=bnb_config,
-            # load_in_8bit=True,
+            load_in_8bit=True,
             device_map="auto"
         )
         self.model = self.model.eval()
