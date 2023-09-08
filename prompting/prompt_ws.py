@@ -10,7 +10,7 @@ VERBOSE=False
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = str(DEVICE_NUM)
 CACHE_FOLDER = f"data/caches/{DATASET}/{MODEL_NAME}/{MODEL_SIZE}"
-CACHE_PATH = CACHE_FOLDER + "cache.jsonl"
+CACHE_PATH = os.path.join(CACHE_FOLDER, "cache.jsonl")
 DATASET_PATH = f"data/datasets/{DATASET}.csv"
 SIGNALS_PATH = "data/signals.csv"
 
