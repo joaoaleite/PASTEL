@@ -44,8 +44,16 @@ def load_cache(p):
     return cache
 
 def dump_cache(line, p):
-    with open(p, "a") as f:
-        f.write(json.dumps(line)+"\n")
+    attempts = 0
+    while True:
+        if attempts > 50:
+            raise Exception("Tried writing to file too many times.")
+      
+        with open(p, "a") as f:
+            try:
+                f.write(json.dumps(line)+"\n")
+            except PermissionError:
+                attempts += 1
 
 # %%
 def process(model, df, signal_df, verbose=False):
@@ -147,6 +155,6 @@ if __name__ == "__main__":
     else:
         raise Exception(f"No model named {MODEL_NAME} with size {MODEL_SIZE}")
 
-
+    print(f"Dataset: {DATASET} Model Name: {MODEL_NAME} Model Size: {MODEL_SIZE}")
     print("Device Name:", torch.cuda.get_device_name())
     process(model, df, signal_df, verbose=VERBOSE)

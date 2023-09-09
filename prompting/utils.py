@@ -94,7 +94,7 @@ class llama2_platypus():
         if size in [7, 13, 70]:
             model_name = f"garage-bAInd/Platypus2-{size}B"
         else:
-            raise Exception(f"Size {size} not available for Llama. Choose 7, 13 or 70.")
+            raise Exception("Size available for Llama. Choose 7, 13 or 70.")
         
         # bnb_config = BitsAndBytesConfig(
         #     load_in_4bit=True,
