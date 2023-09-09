@@ -44,16 +44,8 @@ def load_cache(p):
     return cache
 
 def dump_cache(line, p):
-    attempts = 0
-    while True:
-        if attempts > 50:
-            raise Exception("Tried writing to file too many times.")
-      
-        with open(p, "a") as f:
-            try:
-                f.write(json.dumps(line)+"\n")
-            except PermissionError:
-                attempts += 1
+    with open(p, "a") as f:
+        f.write(json.dumps(line)+"\n")
 
 # %%
 def process(model, df, signal_df, verbose=False):
