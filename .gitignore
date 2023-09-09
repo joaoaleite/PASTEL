@@ -1,5 +1,3 @@
-*.csv
-*.jsonl
 slurm_jobs/
 *.slurm
 *.out
