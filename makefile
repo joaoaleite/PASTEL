@@ -1,5 +1,5 @@
 extract_signals:
-	sbatch run.slurm {dataset} {model_size}
+	sbatch run.slurm $(dataset) $(model_size)
 
 extract_signals_all:
 	sbatch run.slurm politifact 7
@@ -16,13 +16,13 @@ extract_signals_all:
 	sbatch run.slurm fakenewsdataset 70
 
 train:
-	sbatch train.slurm {dataset} {model_size} 0
-	sbatch train.slurm {dataset} {model_size} 1
-	sbatch train.slurm {dataset} {model_size} 2
-	sbatch train.slurm {dataset} {model_size} 3
-	sbatch train.slurm {dataset} {model_size} 4
-	sbatch train.slurm {dataset} {model_size} 5
-	sbatch train.slurm {dataset} {model_size} 6
-	sbatch train.slurm {dataset} {model_size} 7
-	sbatch train.slurm {dataset} {model_size} 8
-	sbatch train.slurm {dataset} {model_size} 9
+	sbatch train.slurm $(dataset) $(model_size) 0
+	sbatch train.slurm $(dataset) $(model_size) 1
+	sbatch train.slurm $(dataset) $(model_size) 2
+	sbatch train.slurm $(dataset) $(model_size) 3
+	sbatch train.slurm $(dataset) $(model_size) 4
+	sbatch train.slurm $(dataset) $(model_size) 5
+	sbatch train.slurm $(dataset) $(model_size) 6
+	sbatch train.slurm $(dataset) $(model_size) 7
+	sbatch train.slurm $(dataset) $(model_size) 8
+	sbatch train.slurm $(dataset) $(model_size) 9
