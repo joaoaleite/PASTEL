@@ -1,6 +1,3 @@
-import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
-
 import pandas as pd
 from torch.utils.data import DataLoader
 import pytorch_lightning as pl
