@@ -21,36 +21,36 @@ extract_signals_all:
 	sbatch run.slurm fakenewsdataset 70
 
 train:
-	sbatch run.slurm $(dataset) 7 0
- 	sbatch run.slurm $(dataset) 13 0
-	sbatch run.slurm $(dataset) 70 0
-	sbatch run.slurm $(dataset) 7 1
- 	sbatch run.slurm $(dataset) 13 1
-	sbatch run.slurm $(dataset) 70 1
-	sbatch run.slurm $(dataset) 7 2
- 	sbatch run.slurm $(dataset) 13 2
-	sbatch run.slurm $(dataset) 70 2
-	sbatch run.slurm $(dataset) 7 3
- 	sbatch run.slurm $(dataset) 13 3
-	sbatch run.slurm $(dataset) 70 3
-	sbatch run.slurm $(dataset) 7 4
- 	sbatch run.slurm $(dataset) 13 4
-	sbatch run.slurm $(dataset) 70 4
-	sbatch run.slurm $(dataset) 7 5
- 	sbatch run.slurm $(dataset) 13 5
-	sbatch run.slurm $(dataset) 70 5
-	sbatch run.slurm $(dataset) 7 6
- 	sbatch run.slurm $(dataset) 13 6
-	sbatch run.slurm $(dataset) 70 6
-	sbatch run.slurm $(dataset) 7 7
- 	sbatch run.slurm $(dataset) 13 7
-	sbatch run.slurm $(dataset) 70 7
-	sbatch run.slurm $(dataset) 7 8
- 	sbatch run.slurm $(dataset) 13 8
-	sbatch run.slurm $(dataset) 70 8
-	sbatch run.slurm $(dataset) 7 9
- 	sbatch run.slurm $(dataset) 13 9
-	sbatch run.slurm $(dataset) 70 9
+	sbatch train.slurm $(dataset) 7 0
+ 	sbatch train.slurm $(dataset) 13 0
+	sbatch train.slurm $(dataset) 70 0
+	sbatch train.slurm $(dataset) 7 1
+ 	sbatch train.slurm $(dataset) 13 1
+	sbatch train.slurm $(dataset) 70 1
+	sbatch train.slurm $(dataset) 7 2
+ 	sbatch train.slurm $(dataset) 13 2
+	sbatch train.slurm $(dataset) 70 2
+	sbatch train.slurm $(dataset) 7 3
+ 	sbatch train.slurm $(dataset) 13 3
+	sbatch train.slurm $(dataset) 70 3
+	sbatch train.slurm $(dataset) 7 4
+ 	sbatch train.slurm $(dataset) 13 4
+	sbatch train.slurm $(dataset) 70 4
+	sbatch train.slurm $(dataset) 7 5
+ 	sbatch train.slurm $(dataset) 13 5
+	sbatch train.slurm $(dataset) 70 5
+	sbatch train.slurm $(dataset) 7 6
+ 	sbatch train.slurm $(dataset) 13 6
+	sbatch train.slurm $(dataset) 70 6
+	sbatch train.slurm $(dataset) 7 7
+ 	sbatch train.slurm $(dataset) 13 7
+	sbatch train.slurm $(dataset) 70 7
+	sbatch train.slurm $(dataset) 7 8
+ 	sbatch train.slurm $(dataset) 13 8
+	sbatch train.slurm $(dataset) 70 8
+	sbatch train.slurm $(dataset) 7 9
+ 	sbatch train.slurm $(dataset) 13 9
+	sbatch train.slurm $(dataset) 70 9
 
 train-all:
 	sbatch train.slurm politifact 7 0
@@ -145,7 +145,7 @@ train-all:
 	sbatch train.slurm celebritydataset 7 9
  	sbatch train.slurm celebritydataset 13 9
 	sbatch train.slurm celebritydataset 70
-	
+
 	sbatch train.slurm fakenewsdataset 7 0
  	sbatch train.slurm fakenewsdataset 13 0
 	sbatch train.slurm fakenewsdataset 70 0
