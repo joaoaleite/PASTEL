@@ -34,7 +34,7 @@ def parse_arguments():
     parser.add_argument("--model_name", type=str, default="llama2_platypus")
     parser.add_argument("--dataset", type=str, required=True)
     parser.add_argument("--end_classifier_name", type=str, default="roberta-base")
-    parser.add_argument("--training_method", type=str, choices=["ws", "zs"])
+    parser.add_argument("--training_method", type=str, choices=["ws", "zs", "gl"])
 
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=5e-5)
@@ -113,20 +113,25 @@ def main(fold, training_method, dataset, model_size, model_name, pretrained_name
         # Get LLM zero-shot train labels to train end classifier
         y_train = df_train["objective_pred"].to_numpy()
 
+    elif training_method == "gl":
+        y_train = df_train["objective_true"].to_numpy()
+
     else:
         raise Exception("Training method not supported.")
 
     # Log the outputs directly from the LLM (without training the end classifier)
-    wandb.log({
-            "llm_output/val_acc": val_acc,
-            "llm_output/f1_macro": val_f1_macro,
-            "llm_output/val_true_positive_rate": true_positive_rate,
-            "llm_output/val_false_positive_rate": false_positive_rate,
-            "llm_output/val_true_negative_rate": true_negative_rate,
-            "llm_output/val_false_negative_rate": false_negative_rate,
-            "llm_output/precision": precision,
-            "llm_output/recall": recall
-    }, step=0)
+
+    if training_method != "gl":
+        wandb.log({
+                "llm_output/val_acc": val_acc,
+                "llm_output/f1_macro": val_f1_macro,
+                "llm_output/val_true_positive_rate": true_positive_rate,
+                "llm_output/val_false_positive_rate": false_positive_rate,
+                "llm_output/val_true_negative_rate": true_negative_rate,
+                "llm_output/val_false_negative_rate": false_negative_rate,
+                "llm_output/precision": precision,
+                "llm_output/recall": recall
+        }, step=0)
     
     # Train the end classifier
     trainset = FakeDataset(X_train, y_train, tokenizer_name=pretrained_name) # y_train are silver labels
