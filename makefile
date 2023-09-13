@@ -51,3 +51,15 @@ train:
 	sbatch train.slurm $(dataset) 7 9 $(training_method)
 	sbatch train.slurm $(dataset) 13 9 $(training_method)
 	sbatch train.slurm $(dataset) 70 9 $(training_method)
+
+learning_curve:
+	sbatch learning_curve.slurm $(dataset) 70 0
+	sbatch learning_curve.slurm $(dataset) 70 1
+	sbatch learning_curve.slurm $(dataset) 70 2
+	sbatch learning_curve.slurm $(dataset) 70 3
+	sbatch learning_curve.slurm $(dataset) 70 4
+	sbatch learning_curve.slurm $(dataset) 70 5
+	sbatch learning_curve.slurm $(dataset) 70 6
+	sbatch learning_curve.slurm $(dataset) 70 7
+	sbatch learning_curve.slurm $(dataset) 70 8
+	sbatch learning_curve.slurm $(dataset) 70 9
