@@ -179,7 +179,6 @@ MODEL_SIZE = args.model_size
 MODEL_NAME = args.model_name
 DEVICE_NUM = args.device_num
 PRETRAINED_NAME = args.end_classifier_name
-TRAINING_METHOD = args.training_method
 
 hyperparameters = {
     "learning_rate": args.learning_rate,
