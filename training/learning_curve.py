@@ -33,7 +33,7 @@ def parse_arguments():
     return args
 
 def get_train_test_split(step, dataset, model_name, model_size):
-    dataset_path = f"../data/processed/{dataset}/{model_name}/{model_size}/{dataset}.csv"
+    dataset_path = f"data/processed/{dataset}/{model_name}/{model_size}/{dataset}.csv"
     df = pd.read_csv(dataset_path)
     train_df, test_df = train_test_split(df, train_size=0.7, random_state=SEED)
 
@@ -44,7 +44,7 @@ def get_train_test_split(step, dataset, model_name, model_size):
 def get_train_test_fold(fold, step, dataset, model_size, model_name="llama2_platypus", num_splits=10):
     assert fold < num_splits
     
-    dataset_path = f"../data/processed/{dataset}/{model_name}/{model_size}/{dataset}.csv"
+    dataset_path = f"data/processed/{dataset}/{model_name}/{model_size}/{dataset}.csv"
     df = pd.read_csv(dataset_path)
     skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=SEED)
     for j, (train_idxs, test_idxs) in enumerate(skf.split(range(len(df)), y=df["objective_true"].to_numpy())):
