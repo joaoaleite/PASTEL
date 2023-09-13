@@ -18,7 +18,7 @@ def get_train_test_fold(fold, dataset, model_size, model_name="llama2_platypus",
     
     dataset_path = f"data/processed/{dataset}/{model_name}/{model_size}/{dataset}.csv"
     df = pd.read_csv(dataset_path)
-    skf = StratifiedKFold(n_splits=10, shuffle=True)
+    skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=SEED)
     for j, (train_idxs, test_idxs) in enumerate(skf.split(range(len(df)), y=df["objective_true"].to_numpy())):
         train_df, test_df = df.iloc[train_idxs], df.iloc[test_idxs]
 

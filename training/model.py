@@ -1,7 +1,7 @@
 import torch
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, Dataset
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report, precision_score, recall_score
 import wandb
 from transformers import (
     AdamW,
@@ -51,6 +51,16 @@ class TransformersClassifier(pl.LightningModule):
         self.save_hyperparameters()
         self.model = AutoModelForSequenceClassification.from_pretrained(pretrained_name, num_labels=num_classes)
         self.validation_step_outputs = []
+        self.best_scores = {
+            "val_acc": 0,
+            "f1_macro": 0,
+            "val_true_positive_rate": 0,
+            "val_false_positive_rate": 0,
+            "val_true_negative_rate": 0,
+            "val_false_negative_rate": 0,
+            "precision": 0,
+            "recall": 0
+        }
 
     def forward(self, input_ids, attention_mask, targets=None):
         return self.model(input_ids=input_ids, attention_mask=attention_mask, labels=targets)
@@ -105,6 +115,9 @@ class TransformersClassifier(pl.LightningModule):
         false_negative_rate = fn / (fn + tp)
         true_positive_rate = tp / (tp + fn)
 
+        precision = precision_score(targets, preds, zero_division=0.0)
+        recall = recall_score(targets, preds, zero_division=0.0)
+
         self.log('end_classifier/val_loss', val_loss, prog_bar=True)
         self.log('end_classifier/val_acc', val_acc, prog_bar=True)
         self.log('end_classifier/val_f1_macro', val_f1_macro, prog_bar=True)
@@ -113,7 +126,19 @@ class TransformersClassifier(pl.LightningModule):
         self.log('end_classifier/val_false_negative_rate', false_negative_rate, prog_bar=True)
         self.log('end_classifier/val_true_positive_rate', true_positive_rate, prog_bar=True)
 
-        print(classification_report(targets, preds))
+        if val_f1_macro > self.best_scores["f1_macro"]:
+            self.best_scores = {
+                "val_acc": val_acc,
+                "f1_macro": val_f1_macro,
+                "val_true_positive_rate": true_positive_rate,
+                "val_false_positive_rate": false_positive_rate,
+                "val_true_negative_rate": true_negative_rate,
+                "val_false_negative_rate": false_negative_rate,
+                "precision": precision,
+                "recall": recall
+            }
+        
+        print(classification_report(targets, preds, zero_division=0.0))
         self.validation_step_outputs.clear()
 
     def configure_optimizers(self):
