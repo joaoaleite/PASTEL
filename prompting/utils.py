@@ -90,11 +90,12 @@ class llama_chat_hf():
         return ans
 
 class llama2_platypus():
-    def __init__(self, size):
-        if size in [7, 13, 70]:
-            model_name = f"garage-bAInd/Platypus2-{size}B"
-        else:
-            raise Exception("Size available for Llama. Choose 7, 13 or 70.")
+    def __init__(self, size, model_name=None):
+        if model_name is None:
+            if size in [7, 13, 70]:
+                model_name = f"garage-bAInd/Platypus2-{size}B"
+            else:
+                raise Exception("Size available for Llama. Choose 7, 13 or 70.")
         
         # bnb_config = BitsAndBytesConfig(
         #     load_in_4bit=True,

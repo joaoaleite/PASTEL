@@ -64,9 +64,9 @@ def process(model, df, signal_df, verbose=False):
 
             # ZS Question
             system_context_zs = system_context.format(options="Yes/No", abstain_context="", question="Does this article contain misinformation?")
-            prompt_formatted = prompt.format(title=article_row.title, text=article_row.text, system_context=system_context_zs)
+            prompt_formatted = prompt.format(title=article_row.title, text=article_row.text)
             try:
-                answer_zs = model.prompt(prompt_formatted)
+                answer_zs = model.prompt(prompt_formatted, system_context=system_context_zs)
             except Exception as e:
                 print("ERROR", e)
                 continue
