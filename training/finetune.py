@@ -44,7 +44,7 @@ def get_train_test_fold(fold, dataset, num_splits=10):
     prompt = "{system_context}\n\n### Input:\n{text}\n\n### Response:\n{label}"
     SEED = 42
 
-    dataset_path = f"../data/datasets/{dataset}.csv"
+    dataset_path = f"data/datasets/{dataset}.csv"
     df = pd.read_csv(dataset_path)
     df = df.fillna("")
     df["prompt"] = df.apply(lambda x: prompt.format(text=(x["title"]+"\n"+x["text"]).strip(), system_context=system_context, label="Yes" if x["objective"] == 1 else "No"), axis=1)
