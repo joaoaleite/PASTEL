@@ -119,16 +119,11 @@ class LoadBestPeftModelCallback(TrainerCallback):
 
 # %%
 if __name__ == "__main__":
-    # args = parse_arguments()
-    # DATASET = args.dataset
-    # FOLD = args.fold
-    # MODEL_SIZE = args.model_size
-    # MODEL_NAME = args.model_name
-
-    DATASET = "politifact"
-    FOLD = 0
-    MODEL_SIZE = 7
-    MODEL_NAME = "garage-bAInd/Platypus2-7B"
+    args = parse_arguments()
+    DATASET = args.dataset
+    FOLD = args.fold
+    MODEL_SIZE = args.model_size
+    MODEL_NAME = args.model_name
 
     experiment_config = {
         "dataset": DATASET,
@@ -137,6 +132,7 @@ if __name__ == "__main__":
         "model_name": MODEL_NAME
     }
 
+    model_name = f"garage-bAInd/Platypus2-{MODEL_SIZE}B"
     lora_r = 16
     lora_alpha = 16
     lora_dropout= 0.05
@@ -190,7 +186,7 @@ if __name__ == "__main__":
     )
     model.config.use_cache = False
     model.config.pretraining_tp = 1
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
     peft_config = LoraConfig(
@@ -239,7 +235,7 @@ if __name__ == "__main__":
     # trainer.model.save_pretrained(new_model)
 
     print("Making inference...")
-    inference_model = llama2_platypus(model_name=MODEL_NAME, model=model)
+    inference_model = llama2_platypus(model_name=model_name, model=model)
     system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Ensure that your answers are grounded in reality, truthful and reliable. You must answer the following question: "Does this article contain misinformation?" (Yes/No)"""
     system_context_zs = system_context.format(options="Yes/No", abstain_context="", question="Does this article contain misinformation?")
     prompt = """{title}\n{text}"""
