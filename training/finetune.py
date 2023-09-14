@@ -9,7 +9,8 @@ from transformers import (
     TrainingArguments,
     TrainerCallback,
     TrainerState,
-    TrainerControl
+    TrainerControl,
+    BitsAndBytesConfig,
 )
 from peft import LoraConfig, set_peft_model_state_dict
 from trl import SFTTrainer
@@ -58,13 +59,6 @@ def get_train_test_fold(fold, dataset, num_splits=10):
 
 class llama2_platypus():
     def __init__(self, model, model_name):
-        # bnb_config = BitsAndBytesConfig(
-        #     load_in_4bit=True,
-        #     bnb_4bit_quant_type='nf4',
-        #     bnb_4bit_use_double_quant=True,
-        #     bnb_4bit_compute_dtype=torch.bfloat16
-        # )
-
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, add_eos_token=False, add_bos_token=True)
         self.model = model
         self.model = self.model.eval()
@@ -134,12 +128,12 @@ if __name__ == "__main__":
     }
 
     model_name = f"garage-bAInd/Platypus2-{MODEL_SIZE}B"
-    lora_r = 16
+    lora_r = 8
     lora_alpha = 16
     lora_dropout= 0.05
-    # use_4bit = True
-    # bnb_4bit_compute_dtype = "float16"
-    # bnb_4bit_quant_type = "nf4"
+    use_4bit = True
+    bnb_4bit_compute_dtype = "float16"
+    bnb_4bit_quant_type = "nf4"
     use_nested_quant = False
     output_dir = "./results"
     num_train_epochs = 1
@@ -171,18 +165,18 @@ if __name__ == "__main__":
     valid_dataset = Dataset.from_pandas(test_df)
 
     # compute_dtype = getattr(torch, bnb_4bit_compute_dtype)
-
-    # bnb_config = BitsAndBytesConfig(
-    #     load_in_4bit=use_4bit,
-    #     bnb_4bit_quant_type=bnb_4bit_quant_type,
-    #     bnb_4bit_compute_dtype=compute_dtype,
-    #     bnb_4bit_use_double_quant=use_nested_quant,
-    # )
+    compute_dtype = getattr(torch, bnb_4bit_compute_dtype)
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=use_4bit,
+        bnb_4bit_quant_type=bnb_4bit_quant_type,
+        bnb_4bit_compute_dtype=compute_dtype,
+        bnb_4bit_use_double_quant=use_nested_quant,
+    )
 
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        # quantization_config=bnb_config,
-        load_in_8bit=True,
+        quantization_config=bnb_config,
+        # load_in_8bit=True,
         device_map=device_map
     )
     model.config.use_cache = False
