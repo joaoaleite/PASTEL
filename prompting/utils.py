@@ -118,12 +118,7 @@ class llama2_platypus():
         user_message = self.tokenizer.decode(self.tokenizer.encode(user_message, return_tensors='pt', truncation=True, max_length=3800, add_special_tokens=False)[0]) # ensure the text will fit 4096 tokens
         system_context = f"Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\n{system_context}"
         prompt = f"{system_context}\n\n### Input:\n{user_message.strip()}\n\n### Response:\n"
-        size_prompt = len(self.tokenizer.encode(prompt, return_tensors="pt"))
-        while size_prompt >= 4096:
-            user_message = user_message[500:]
-            prompt = f"{system_context}\n\n### Input:\n{user_message.strip()}\n\n### Response:\n"
-            size_prompt = len(self.tokenizer.encode(prompt, return_tensors="pt"))
-
+        
         # ans1 = self.get_next_word_probs(prompt, allow_abstain)
         ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to(self.device), max_new_tokens=1)
         ans = self.tokenizer.decode(ans[0])
