@@ -50,9 +50,9 @@ def dump_cache(line, p):
 # %%
 def process(model, df, signal_df, verbose=False):
     system_context = \
-        """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable.{abstain_context}"""
+        """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Ensure that your answers are grounded in reality, truthful and reliable.{abstain_context} You must answer the following question: {question} ({options})"""
 
-    prompt = """{title}\n{text}\n\n{question} ({options})"""
+    prompt = "{title}\n{text}"
     abstain_context = " You are expeted to answer with 'Yes' or 'No', but you are also allowed to answer with 'Unsure' if you do not have enough information or context to provide a reliable answer."
     preds = []
     trues = []
@@ -63,13 +63,13 @@ def process(model, df, signal_df, verbose=False):
                 continue
 
             # ZS Question
-            system_context_zs = system_context.format(options="Yes/No", abstain_context="")
-            prompt_formatted = prompt.format(title=article_row.title, text=article_row.text, system_context=system_context_zs, question="Does this article contain misinformation?", options="Yes/No")
+            system_context_zs = system_context.format(options="Yes/No", abstain_context="", question="Does this article contain misinformation?")
+            prompt_formatted = prompt.format(title=article_row.title, text=article_row.text, system_context=system_context_zs)
             try:
                 answer_zs = model.prompt(prompt_formatted)
-            except torch.cuda.OutOfMemoryError as e:
-                prompt_formatted = prompt.format(title=article_row.title, text=article_row.text[:2000], system_context=system_context_zs, question="Does this article contain misinformation?", options="Yes/No")
-                answer_zs = model.prompt(prompt_formatted)
+            except Exception as e:
+                print("ERROR", e)
+                continue
             
             category_zs = category_mapping(answer_zs)
             preds.append(category_zs)
@@ -92,21 +92,20 @@ def process(model, df, signal_df, verbose=False):
 
             processed = {}
             for j, question_row in enumerate(signal_df.itertuples()):
-                system_context_ws = system_context.format(options="Yes/Unsure/No", abstain_context=abstain_context)
-                prompt_formatted_ws = prompt.format(title=article_row.title, text=article_row.text, question=question_row.Question, options="Yes/Unsure/No")
+                system_context_ws = system_context.format(options="Yes/Unsure/No", abstain_context=abstain_context, question=question_row.Question)
+                prompt_formatted_ws = prompt.format(title=article_row.title, text=article_row.text)
 
                 try:
                     answer_ws = model.prompt(prompt_formatted_ws, system_context=system_context_ws)
-                except torch.cuda.OutOfMemoryError as e:
-                    prompt_formatted_ws = prompt.format(title=article_row.title, text=article_row.text[:2000], question=question_row.Question, options="Yes/Unsure/No")
-                    answer_ws = model.prompt(prompt_formatted_ws, system_context=system_context_ws)
+                except Exception as e:
+                    print("ERROR", e)
+                    break
 
                 category_ws = category_mapping(answer_ws)
                 if verbose:
                     print(question_row.Question, category_ws)
                     print(answer_ws)
                     
-                
                 processed[question_row._2] = category_ws
                 pbar.update(1)
             
