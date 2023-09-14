@@ -180,7 +180,7 @@ if __name__ == "__main__":
     # )
 
     model = AutoModelForCausalLM.from_pretrained(
-        MODEL_NAME,
+        model_name,
         # quantization_config=bnb_config,
         load_in_8bit=True,
         device_map=device_map
