@@ -164,7 +164,7 @@ if __name__ == "__main__":
     device_map = {"": 0}
     train_df, test_df = get_train_test_fold(FOLD, DATASET)
 
-    wandb.init(project="test-llm-train", name=f"{DATASET}-{MODEL_SIZE}-fold{FOLD}")
+    wandb.init(project="credibility_signals_llm_finetune", name=f"{DATASET}-{MODEL_SIZE}-fold{FOLD}")
     wandb.config["experiment"] = experiment_config
     # Load datasets
     train_dataset = Dataset.from_pandas(train_df)
