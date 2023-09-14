@@ -97,18 +97,18 @@ class llama2_platypus():
             else:
                 raise Exception("Size available for Llama. Choose 7, 13 or 70.")
         
-        # bnb_config = BitsAndBytesConfig(
-        #     load_in_4bit=True,
-        #     bnb_4bit_quant_type='nf4',
-        #     bnb_4bit_use_double_quant=True,
-        #     bnb_4bit_compute_dtype=torch.bfloat16
-        # )
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type='nf4',
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16
+        )
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, add_eos_token=False, add_bos_token=True)
         self.model  = AutoModelForCausalLM.from_pretrained(
             model_name,
-            # quantization_config=bnb_config,
-            load_in_8bit=True,
+            quantization_config=bnb_config,
+            # load_in_8bit=True,
             device_map="auto"
         )
         self.model = self.model.eval()
