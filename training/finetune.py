@@ -25,6 +25,7 @@ def parse_arguments():
     
     # Define the arguments
     parser.add_argument("--device_num", type=int, default=0)
+    parser.add_argument("--fold", type=int, required=True)
     parser.add_argument("--model_size", type=int, choices=[7, 13, 70], required=True)
     parser.add_argument("--model_name", type=str, default="llama2_platypus")
     parser.add_argument("--dataset", type=str, required=True)
