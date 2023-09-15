@@ -7,6 +7,7 @@ import json
 from tqdm import tqdm
 from sklearn.metrics import f1_score, accuracy_score
 import argparse
+import random
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -50,23 +51,27 @@ def dump_cache(line, p):
 # %%
 def process(model, df, signal_df, verbose=False):
     system_context = \
-        """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Ensure that your answers are grounded in reality, truthful and reliable.{abstain_context} You must answer the following question: {question} ({options})"""
+    """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable.{abstain_context}"""
 
-    prompt = "{title}\n{text}"
+    prompt = """{title}\n{text}"""
     abstain_context = " You are expeted to answer with 'Yes' or 'No', but you are also allowed to answer with 'Unsure' if you do not have enough information or context to provide a reliable answer."
     preds = []
     trues = []
-    processed_records = []
+    randomizer = lambda: random.randint(0, 1)
+    num_abstain = 0
+    num_no = 0
+    num_yes = 0
     with tqdm(total=len(df)*len(signal_df)) as pbar:
         for i, article_row in enumerate(df.itertuples()):
             if article_row.article_md5 in [row["article_md5"] for row in load_cache(CACHE_PATH)]:
                 continue
 
             # ZS Question
-            system_context_zs = system_context.format(options="Yes/No", abstain_context="", question="Does this article contain misinformation?")
-            prompt_formatted = prompt.format(title=article_row.title, text=article_row.text)
+            system_context_zs = system_context.format(abstain_context="")
+            input_zs = prompt.format(title=article_row.title, text=article_row.text)
+            question_zs = "Does this article contain misinformation? (Yes/No)"
             try:
-                answer_zs = model.prompt(prompt_formatted, system_context=system_context_zs)
+                answer_zs = model.prompt(input=input_zs, question=question_zs, system_context=system_context_zs)
             except Exception as e:
                 print("ERROR", e)
                 continue
@@ -76,11 +81,12 @@ def process(model, df, signal_df, verbose=False):
             true = article_row.objective
             trues.append(true)
 
+            num_yes += 1 if category_zs == 1 else 0
+            num_no += 1 if category_zs == 0 else 0
+            num_abstain += 1 if category_zs == -1 else 0
+
             acc = accuracy_score(trues, preds)
             f1 = f1_score(trues, preds, average="macro")
-            num_yes = len([x for x in preds if x == 1])
-            num_no = len([x for x in preds if x == 0])
-            num_abstain = len([x for x in preds if x == -1])
             updated_description = f"Acc={acc*100:.2f}, F1={f1*100:.2f}, Total={i}, Num_Yes={num_yes}, Num_No={num_no}, Num_Abstain={num_abstain}"
             pbar.set_description(updated_description)
             
@@ -92,11 +98,11 @@ def process(model, df, signal_df, verbose=False):
 
             processed = {}
             for j, question_row in enumerate(signal_df.itertuples()):
-                system_context_ws = system_context.format(options="Yes/Unsure/No", abstain_context=abstain_context, question=question_row.Question)
-                prompt_formatted_ws = prompt.format(title=article_row.title, text=article_row.text)
-
-                try:
-                    answer_ws = model.prompt(prompt_formatted_ws, system_context=system_context_ws)
+                system_context_ws = system_context.format(abstain_context=abstain_context)
+                input_ws = prompt.format(title=article_row.title, text=article_row.text)
+                question_ws = question_row.Question + " (Yes/Unsure/No)"
+                try:        
+                    answer_ws = model.prompt(input=input_ws, question=question_ws, system_context=system_context_ws)
                 except Exception as e:
                     print("ERROR", e)
                     break
