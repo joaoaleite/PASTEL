@@ -235,13 +235,16 @@ if __name__ == "__main__":
     system_context_zs = system_context.format(options="Yes/No", abstain_context="", question="Does this article contain misinformation?")
     prompt = """{title}\n{text}"""
     randomizer = lambda: random.randint(0, 1)
-    def class_mapper(x):
-        if x.lower().startswith("yes"):
-            return 1
-        elif x.lower().startswith("no"):
-            return 0
+    def category_mapping(answer):
+        if answer.lower().startswith("no") or answer.lower().startswith("false"):
+            category = 0
+        elif answer.lower().startswith("yes") or answer.lower().startswith("true"):
+            category = 1
         else:
-            return -1
+            category = -1
+
+        return category
+
 
     preds = []
     targets = []
