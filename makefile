@@ -21,16 +21,16 @@ extract_signals_all:
 	sbatch run.slurm fakenewsdataset 70
 
 train:
-	sbatch train_$(device).slurm $(dataset) 70 0 $(training_method)
-	sbatch train_$(device).slurm $(dataset) 70 1 $(training_method)
-	sbatch train_$(device).slurm $(dataset) 70 2 $(training_method)
-	sbatch train_$(device).slurm $(dataset) 70 3 $(training_method)
-	sbatch train_$(device).slurm $(dataset) 70 4 $(training_method)
-	sbatch train_$(device).slurm $(dataset) 70 5 $(training_method)
-	sbatch train_$(device).slurm $(dataset) 70 6 $(training_method)
-	sbatch train_$(device).slurm $(dataset) 70 7 $(training_method)
-	sbatch train_$(device).slurm $(dataset) 70 8 $(training_method)
-	sbatch train_$(device).slurm $(dataset) 70 9 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 0 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 1 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 2 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 3 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 4 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 5 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 6 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 7 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 8 $(training_method)
+	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 9 $(training_method)
 
 learning_curve:
 	sbatch learning_curve.slurm $(dataset) 70 0
