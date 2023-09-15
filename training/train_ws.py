@@ -147,7 +147,7 @@ def main(fold, training_method, dataset, model_size, model_name, pretrained_name
                 "val/recall": recall
         }, step=0)
     
-    if end_classifier:
+    if training_method == "gl" or end_classifier:
         # Train the end classifier
         trainset = FakeDataset(X_train, y_train, tokenizer_name=pretrained_name) # y_train are silver labels
         testset = FakeDataset(X_test, y_test_gold, tokenizer_name=pretrained_name) # y_test_gold are gold labels
