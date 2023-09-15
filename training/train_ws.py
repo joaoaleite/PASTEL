@@ -35,6 +35,7 @@ def parse_arguments():
     parser.add_argument("--dataset", type=str, required=True)
     parser.add_argument("--end_classifier_name", type=str, default="roberta-base")
     parser.add_argument("--training_method", type=str, choices=["ws", "zs", "gl"])
+    parser.add_argument("--end_classifier", action='store_true')
 
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--learning_rate", type=float, default=1e-5)
@@ -46,24 +47,37 @@ def parse_arguments():
     return args
 
 
-def main(fold, training_method, dataset, model_size, model_name, pretrained_name, hyperparameters):
+def main(fold, training_method, dataset, model_size, model_name, pretrained_name, end_classifier, hyperparameters):
     experiment_config = {
         "dataset": dataset,
         "fold": fold,
         "model_size": model_size,
         "model_name": model_name,
-        "training_method": training_method
+        "training_method": training_method,
+        "end_classifier": end_classifier
     }
 
+    end_clf_str = "+clf" if end_classifier else ""
     logger = WandbLogger(
         project="prompted_credibility",
-        name=f"{training_method}-{dataset}-{model_size}-fold{fold}",
+        name=f"{training_method}-{dataset}-{model_size}{end_clf_str}-fold{fold}",
         log_model=False
     )
+
     if rank_zero_only.rank == 0:
         logger.experiment.config.update(
             experiment_config
         )
+
+        wandb.define_metric('val/f1_macro', summary='max')
+        wandb.define_metric('val/acc', summary='max')
+        wandb.define_metric('val/precision', summary='max')
+        wandb.define_metric('val/recall', summary='max')
+        wandb.define_metric('val/loss', summary='min')
+        wandb.define_metric('val/false_positive_rate', summary='min')
+        wandb.define_metric('val/true_negative_rate', summary='max')
+        wandb.define_metric('val/false_negative_rate', summary='min')
+        wandb.define_metric('val/true_positive_rate', summary='max')
 
     df_train, df_test = get_train_test_fold(fold, dataset, model_size, model_name)
     X_train = df_train["text"].tolist()
@@ -121,35 +135,36 @@ def main(fold, training_method, dataset, model_size, model_name, pretrained_name
 
     # Log the outputs directly from the LLM (without training the end classifier)
 
-    if training_method != "gl":
+    if training_method != "gl" and not end_classifier:
         wandb.log({
-                "llm_output/val_acc": val_acc,
-                "llm_output/f1_macro": val_f1_macro,
-                "llm_output/val_true_positive_rate": true_positive_rate,
-                "llm_output/val_false_positive_rate": false_positive_rate,
-                "llm_output/val_true_negative_rate": true_negative_rate,
-                "llm_output/val_false_negative_rate": false_negative_rate,
-                "llm_output/precision": precision,
-                "llm_output/recall": recall
+                "val/acc": val_acc,
+                "val/f1_macro": val_f1_macro,
+                "val/true_positive_rate": true_positive_rate,
+                "val/false_positive_rate": false_positive_rate,
+                "val/true_negative_rate": true_negative_rate,
+                "val/false_negative_rate": false_negative_rate,
+                "val/precision": precision,
+                "val/recall": recall
         }, step=0)
     
-    # Train the end classifier
-    trainset = FakeDataset(X_train, y_train, tokenizer_name=pretrained_name) # y_train are silver labels
-    testset = FakeDataset(X_test, y_test_gold, tokenizer_name=pretrained_name) # y_test_gold are gold labels
+    if end_classifier:
+        # Train the end classifier
+        trainset = FakeDataset(X_train, y_train, tokenizer_name=pretrained_name) # y_train are silver labels
+        testset = FakeDataset(X_test, y_test_gold, tokenizer_name=pretrained_name) # y_test_gold are gold labels
 
-    train_loader = DataLoader(trainset, batch_size=hyperparameters["batch_size"], shuffle=True)
-    val_loader = DataLoader(testset, batch_size=hyperparameters["batch_size"])
+        train_loader = DataLoader(trainset, batch_size=hyperparameters["batch_size"], shuffle=True)
+        val_loader = DataLoader(testset, batch_size=hyperparameters["batch_size"])
 
-    model = TransformersClassifier(
-        pretrained_name=pretrained_name,
-        num_classes=1,
-        learning_rate=hyperparameters["learning_rate"],
-        warmup_steps=hyperparameters["warmup_steps"],
-        weight_decay=hyperparameters["weight_decay"]
-    )
+        model = TransformersClassifier(
+            pretrained_name=pretrained_name,
+            num_classes=1,
+            learning_rate=hyperparameters["learning_rate"],
+            warmup_steps=hyperparameters["warmup_steps"],
+            weight_decay=hyperparameters["weight_decay"]
+        )
 
-    trainer = pl.Trainer(deterministic=True, max_epochs=hyperparameters["num_epochs"], logger=logger)
-    trainer.fit(model, train_loader, val_loader)
+        trainer = pl.Trainer(deterministic=True, max_epochs=hyperparameters["num_epochs"], logger=logger)
+        trainer.fit(model, train_loader, val_loader)
 
 if __name__ == "__main__":
     args = parse_arguments()
@@ -160,6 +175,7 @@ if __name__ == "__main__":
     DEVICE_NUM = args.device_num
     PRETRAINED_NAME = args.end_classifier_name
     TRAINING_METHOD = args.training_method
+    END_CLASSIFIER = args.end_classifier
 
     hyperparameters = {
         "learning_rate": args.learning_rate,
@@ -176,6 +192,7 @@ if __name__ == "__main__":
         model_name=MODEL_NAME,
         model_size=MODEL_SIZE,
         pretrained_name=PRETRAINED_NAME,
+        end_classifier=END_CLASSIFIER,
         hyperparameters=hyperparameters
     )
 

@@ -73,7 +73,7 @@ class TransformersClassifier(pl.LightningModule):
         outputs = self(input_ids, attention_mask, targets)
         loss = outputs.loss
 
-        self.log('end_classifier/train_loss', loss, on_step=True, on_epoch=True, prog_bar=True)
+        self.log('train/loss', loss, on_step=True, on_epoch=True, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -92,13 +92,15 @@ class TransformersClassifier(pl.LightningModule):
 
     def on_validation_epoch_end(self):
         if self.global_step == 0:
-            wandb.define_metric('end_classifier/val_f1_macro', summary='max')
-            wandb.define_metric('end_classifier/val_acc', summary='max')
-            wandb.define_metric('end_classifier/val_loss', summary='min')
-            wandb.define_metric('end_classifier/val_false_positive_rate', summary='min')
-            wandb.define_metric('end_classifier/val_true_negative_rate', summary='min')
-            wandb.define_metric('end_classifier/val_false_negative_rate', summary='min')
-            wandb.define_metric('end_classifier/val_true_positive_rate', summary='min')
+            wandb.define_metric('val/f1_macro', summary='max')
+            wandb.define_metric('val/acc', summary='max')
+            wandb.define_metric('val/precision', summary='max')
+            wandb.define_metric('val/recall', summary='max')
+            wandb.define_metric('val/loss', summary='min')
+            wandb.define_metric('val/false_positive_rate', summary='min')
+            wandb.define_metric('val/true_negative_rate', summary='max')
+            wandb.define_metric('val/false_negative_rate', summary='min')
+            wandb.define_metric('val/true_positive_rate', summary='max')
             
     
         preds = torch.cat([x["preds"] for x in self.validation_step_outputs]).detach().cpu().numpy()
@@ -118,22 +120,25 @@ class TransformersClassifier(pl.LightningModule):
         precision = precision_score(targets, preds, zero_division=0.0)
         recall = recall_score(targets, preds, zero_division=0.0)
 
-        self.log('end_classifier/val_loss', val_loss, prog_bar=True)
-        self.log('end_classifier/val_acc', val_acc, prog_bar=True)
-        self.log('end_classifier/val_f1_macro', val_f1_macro, prog_bar=True)
-        self.log('end_classifier/val_false_positive_rate', false_positive_rate, prog_bar=True)
-        self.log('end_classifier/val_true_negative_rate', true_negative_rate, prog_bar=True)
-        self.log('end_classifier/val_false_negative_rate', false_negative_rate, prog_bar=True)
-        self.log('end_classifier/val_true_positive_rate', true_positive_rate, prog_bar=True)
+        self.log('val/loss', val_loss, prog_bar=True)
+        self.log('val/acc', val_acc, prog_bar=True)
+        self.log('val/precision', precision, prog_bar=True)
+        self.log('val/recall', recall, prog_bar=True)
+        self.log('val/f1_macro', val_f1_macro, prog_bar=True)
+        self.log('val/false_positive_rate', false_positive_rate, prog_bar=True)
+        self.log('val/true_negative_rate', true_negative_rate, prog_bar=True)
+        self.log('val/false_negative_rate', false_negative_rate, prog_bar=True)
+        self.log('val/true_positive_rate', true_positive_rate, prog_bar=True)
+        
 
         if val_f1_macro > self.best_scores["f1_macro"]:
             self.best_scores = {
-                "val_acc": val_acc,
+                "acc": val_acc,
                 "f1_macro": val_f1_macro,
-                "val_true_positive_rate": true_positive_rate,
-                "val_false_positive_rate": false_positive_rate,
-                "val_true_negative_rate": true_negative_rate,
-                "val_false_negative_rate": false_negative_rate,
+                "true_positive_rate": true_positive_rate,
+                "false_positive_rate": false_positive_rate,
+                "true_negative_rate": true_negative_rate,
+                "false_negative_rate": false_negative_rate,
                 "precision": precision,
                 "recall": recall
             }
