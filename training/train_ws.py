@@ -37,7 +37,7 @@ def parse_arguments():
     parser.add_argument("--training_method", type=str, choices=["ws", "zs", "gl"])
 
     parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--learning_rate", type=float, default=5e-5)
+    parser.add_argument("--learning_rate", type=float, default=1e-5)
     parser.add_argument("--num_epochs", type=int, default=20)
     parser.add_argument("--warmup_steps", type=int, default=100)
     parser.add_argument("--weight_decay", type=float, default=0.0)
