@@ -90,19 +90,7 @@ class TransformersClassifier(pl.LightningModule):
 
         return outputs
 
-    def on_validation_epoch_end(self):
-        if self.global_step == 0:
-            wandb.define_metric('val/f1_macro', summary='max')
-            wandb.define_metric('val/acc', summary='max')
-            wandb.define_metric('val/precision', summary='max')
-            wandb.define_metric('val/recall', summary='max')
-            wandb.define_metric('val/loss', summary='min')
-            wandb.define_metric('val/false_positive_rate', summary='min')
-            wandb.define_metric('val/true_negative_rate', summary='max')
-            wandb.define_metric('val/false_negative_rate', summary='min')
-            wandb.define_metric('val/true_positive_rate', summary='max')
-            
-    
+    def on_validation_epoch_end(self):         
         preds = torch.cat([x["preds"] for x in self.validation_step_outputs]).detach().cpu().numpy()
         targets = torch.cat([x["labels"] for x in self.validation_step_outputs]).detach().cpu().numpy()
         val_loss = torch.stack([x["loss"] for x in self.validation_step_outputs]).mean()
