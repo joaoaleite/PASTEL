@@ -156,6 +156,7 @@ if __name__ == "__main__":
     wandb.config["model_size"] = MODEL_SIZE
     wandb.config["model_name"] = MODEL_NAME
     wandb.config["training_method"] = "llm-ft"
+    wandb.config["end_classifier"] = False
     wandb.define_metric('val/f1_macro', summary='max')
     wandb.define_metric('val/acc', summary='max')
     wandb.define_metric('val/precision', summary='max')
