@@ -59,14 +59,13 @@ def get_train_test_fold(fold, dataset, num_splits=10):
 
 class llama2_platypus():
     def __init__(self, size, model):
-        if model_name is None:
-            if size in [7, 13, 70]:
-                model_name = f"garage-bAInd/Platypus2-{size}B"
-            else:
-                raise Exception(f"Size {size} not available for Llama. Choose 7, 13 or 70.")
+        if size in [7, 13, 70]:
+            model_name = f"garage-bAInd/Platypus2-{size}B"
         else:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name, add_eos_token=False, add_bos_token=True)
-            self.model = model
+            raise Exception(f"Size {size} not available for Llama. Choose 7, 13 or 70.")
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, add_eos_token=False, add_bos_token=True)
+        self.model = model
 
     def prompt(self, input, question, system_context):
         # The number of tokens for the question and prompt formatting amounts to 33 tokens
