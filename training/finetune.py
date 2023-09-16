@@ -74,7 +74,7 @@ class llama2_platypus():
         input = self.tokenizer.decode(self.tokenizer.encode(input, return_tensors='pt', truncation=True, max_length=truncate_to, add_special_tokens=False)[0]) # ensure the text will fit 4096 tokens
         prompt = f"### Instruction:\n{system_context}\n\n### Input:\n{input.strip()}\n\n{question.strip()}\n\n### Response:\n"
         # ans1 = self.get_next_word_probs(prompt, allow_abstain)
-        ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to(self.device), max_new_tokens=1, num_beams=1, do_sample=False)
+        ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to("cuda"), max_new_tokens=1, num_beams=1, do_sample=False)
         ans = self.tokenizer.decode(ans[0])
         ans = ans.split("### Response:")[1].strip()
         return ans
@@ -261,7 +261,7 @@ if __name__ == "__main__":
         system_context_zs = system_context.format(abstain_context="")
         input = prompt.format(title=article_row.title, text=article_row.text)
         question = "Does this article contain misinformation? (Yes/No)"
-        ans = model.prompt(input=input, question=question, system_context=system_context_zs)
+        ans = inference_model.prompt(input=input, question=question, system_context=system_context_zs)
        
         label = class_mapper(ans)
 
