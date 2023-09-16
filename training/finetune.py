@@ -30,7 +30,6 @@ def parse_arguments():
     parser.add_argument("--model_size", type=int, choices=[7, 13, 70], required=True)
     parser.add_argument("--model_name", type=str, default="llama2_platypus")
     parser.add_argument("--dataset", type=str, required=True)
-    parser.add_argument("--verbose", action="store_true")
     
     # Parse the arguments
     args = parser.parse_args()
@@ -58,24 +57,38 @@ def get_train_test_fold(fold, dataset, num_splits=10):
             return train_df, test_df
 
 class llama2_platypus():
-    def __init__(self, model, model_name):
+    def __init__(self, size, model_name=None):
+        if model_name is None:
+            if size in [7, 13, 70]:
+                model_name = f"garage-bAInd/Platypus2-{size}B"
+            else:
+                raise Exception(f"Size {size} not available for Llama. Choose 7, 13 or 70.")
+        
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type='nf4',
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16
+        )
+
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, add_eos_token=False, add_bos_token=True)
-        self.model = model
+        self.model  = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            quantization_config=bnb_config,
+            # load_in_8bit=True,
+            device_map="auto"
+        )
         self.model = self.model.eval()
         self.device = self.model.device
 
-    def prompt(self, user_message, system_context):
-        user_message = self.tokenizer.decode(self.tokenizer.encode(user_message, return_tensors='pt', truncation=True, max_length=3800, add_special_tokens=False)[0]) # ensure the text will fit 4096 tokens
-        system_context = f"Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.\n\n### Instruction:\n{system_context}"
-        prompt = f"{system_context}\n\n### Input:\n{user_message.strip()}\n\n### Response:\n"
-        size_prompt = len(self.tokenizer.encode(prompt, return_tensors="pt"))
-        while size_prompt >= 4096:
-            user_message = user_message[500:]
-            prompt = f"{system_context}\n\n### Input:\n{user_message.strip()}\n\n### Response:\n"
-            size_prompt = len(self.tokenizer.encode(prompt, return_tensors="pt"))
-
+    def prompt(self, input, question, system_context):
+        # The number of tokens for the question and prompt formatting amounts to 33 tokens
+        # so we can use 4064 tokens for the input text. Will use 4050 to leave some room.
+        truncate_to = 4050
+        input = self.tokenizer.decode(self.tokenizer.encode(input, return_tensors='pt', truncation=True, max_length=truncate_to, add_special_tokens=False)[0]) # ensure the text will fit 4096 tokens
+        prompt = f"### Instruction:\n{system_context}\n\n### Input:\n{input.strip()}\n\n{question.strip()}\n\n### Response:\n"
         # ans1 = self.get_next_word_probs(prompt, allow_abstain)
-        ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to(self.device), max_new_tokens=1)
+        ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to(self.device), max_new_tokens=1, num_beams=1, do_sample=False)
         ans = self.tokenizer.decode(ans[0])
         ans = ans.split("### Response:")[1].strip()
         return ans
@@ -124,7 +137,8 @@ if __name__ == "__main__":
         "dataset": DATASET,
         "fold": FOLD,
         "model_size": MODEL_SIZE,
-        "model_name": MODEL_NAME
+        "model_name": MODEL_NAME,
+        "training_method": "llm-ft"
     }
 
     model_name = f"garage-bAInd/Platypus2-{MODEL_SIZE}B"
@@ -158,8 +172,18 @@ if __name__ == "__main__":
     device_map = {"": 0}
     train_df, test_df = get_train_test_fold(FOLD, DATASET)
 
-    wandb.init(project="credibility_signals_llm_finetune", name=f"{DATASET}-{MODEL_SIZE}-fold{FOLD}")
+    wandb.init(project="prompted_credibility", name=f"{DATASET}-{MODEL_SIZE}-fold{FOLD}")
     wandb.config["experiment"] = experiment_config
+    wandb.define_metric('val/f1_macro', summary='max')
+    wandb.define_metric('val/acc', summary='max')
+    wandb.define_metric('val/precision', summary='max')
+    wandb.define_metric('val/recall', summary='max')
+    wandb.define_metric('val/loss', summary='min')
+    wandb.define_metric('val/false_positive_rate', summary='min')
+    wandb.define_metric('val/true_negative_rate', summary='max')
+    wandb.define_metric('val/false_negative_rate', summary='min')
+    wandb.define_metric('val/true_positive_rate', summary='max')
+
     # Load datasets
     train_dataset = Dataset.from_pandas(train_df)
     valid_dataset = Dataset.from_pandas(test_df)
@@ -231,8 +255,7 @@ if __name__ == "__main__":
 
     print("Making inference...")
     inference_model = llama2_platypus(model_name=model_name, model=model)
-    system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Ensure that your answers are grounded in reality, truthful and reliable. You must answer the following question: "Does this article contain misinformation?" (Yes/No)"""
-    system_context_zs = system_context.format(options="Yes/No", abstain_context="", question="Does this article contain misinformation?")
+    system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable."""
     prompt = """{title}\n{text}"""
     randomizer = lambda: random.randint(0, 1)
     def class_mapper(answer):
@@ -249,8 +272,11 @@ if __name__ == "__main__":
     preds = []
     targets = []
     for i, article_row in enumerate(test_df.sample(frac=1).itertuples()):
-        prompt_formatted = prompt.format(title=article_row.title, text=article_row.text, system_context=system_context_zs)
-        ans = inference_model.prompt(prompt_formatted, system_context=system_context_zs)
+        system_context_zs = system_context.format(abstain_context="")
+        input = prompt.format(title=article_row.title, text=article_row.text)
+        question = "Does this article contain misinformation? (Yes/No)"
+        ans = model.prompt(input=input, question=question, system_context=system_context_zs)
+       
         label = class_mapper(ans)
 
         preds.append(label)
@@ -273,16 +299,14 @@ if __name__ == "__main__":
     recall = recall_score(targets, preds, zero_division=0.0)
 
     wandb.log({
-        'task_test/acc': val_acc,
-        'task_test/f1_macro': val_f1_macro,
-        'task_test/false_positive_rate': false_positive_rate,
-        'task_test/true_negative_rate': true_negative_rate,
-        'task_test/false_negative_rate': false_negative_rate,
-        'task_test/true_positive_rate': true_positive_rate,
-        'task_test/precision': precision,
-        'task_test/recall': recall,
-        'task_test/num_invalid': num_invalid,
-        'task_test/percent_invalid': percent_invalid
+        'val/acc': val_acc,
+        'val/f1_macro': val_f1_macro,
+        'val/false_positive_rate': false_positive_rate,
+        'val/true_negative_rate': true_negative_rate,
+        'val/false_negative_rate': false_negative_rate,
+        'val/true_positive_rate': true_positive_rate,
+        'val/precision': precision,
+        'val/recall': recall,
+        'val/num_invalid': num_invalid,
+        'val/percent_invalid': percent_invalid
     }, step=wandb.run.step)
-
-
