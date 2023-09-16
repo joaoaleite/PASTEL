@@ -119,14 +119,6 @@ if __name__ == "__main__":
     MODEL_SIZE = args.model_size
     MODEL_NAME = args.model_name
 
-    experiment_config = {
-        "dataset": DATASET,
-        "fold": FOLD,
-        "model_size": MODEL_SIZE,
-        "model_name": MODEL_NAME,
-        "training_method": "llm-ft"
-    }
-
     model_name = f"garage-bAInd/Platypus2-{MODEL_SIZE}B"
     lora_r = 8
     lora_alpha = 16
@@ -159,7 +151,11 @@ if __name__ == "__main__":
     train_df, test_df = get_train_test_fold(FOLD, DATASET)
 
     wandb.init(project="prompted_credibility", name=f"{DATASET}-{MODEL_SIZE}-fold{FOLD}")
-    wandb.config["experiment"] = experiment_config
+    wandb.config["dataset"] = DATASET
+    wandb.config["fold"] = FOLD
+    wandb.config["model_size"] = MODEL_SIZE
+    wandb.config["model_name"] = MODEL_NAME
+    wandb.config["training_method"] = "llm-ft"
     wandb.define_metric('val/f1_macro', summary='max')
     wandb.define_metric('val/acc', summary='max')
     wandb.define_metric('val/precision', summary='max')
