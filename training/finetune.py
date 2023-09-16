@@ -40,8 +40,8 @@ def parse_arguments():
 def get_train_test_fold(fold, dataset, num_splits=10):
     assert fold < num_splits
 
-    system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Ensure that your answers are grounded in reality, truthful and reliable. You must answer the following question: "Does this article contain misinformation?" (Yes/No)"""
-    prompt = "{system_context}\n\n### Input:\n{text}\n\n### Response:\n{label}"
+    system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable."""
+    prompt = "### Instruction:\n{system_context}\n\n### Input:\n{text}\n\n### Response:\n{label}"
     SEED = 42
 
     dataset_path = f"data/datasets/{dataset}.csv"
