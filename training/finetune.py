@@ -20,6 +20,7 @@ import wandb
 import torch
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score
 import os
+from shutil import rmtree
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -57,29 +58,15 @@ def get_train_test_fold(fold, dataset, num_splits=10):
             return train_df, test_df
 
 class llama2_platypus():
-    def __init__(self, size, model_name=None):
+    def __init__(self, size, model):
         if model_name is None:
             if size in [7, 13, 70]:
                 model_name = f"garage-bAInd/Platypus2-{size}B"
             else:
                 raise Exception(f"Size {size} not available for Llama. Choose 7, 13 or 70.")
-        
-        bnb_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_quant_type='nf4',
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_compute_dtype=torch.bfloat16
-        )
-
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name, add_eos_token=False, add_bos_token=True)
-        self.model  = AutoModelForCausalLM.from_pretrained(
-            model_name,
-            quantization_config=bnb_config,
-            # load_in_8bit=True,
-            device_map="auto"
-        )
-        self.model = self.model.eval()
-        self.device = self.model.device
+        else:
+            self.tokenizer = AutoTokenizer.from_pretrained(model_name, add_eos_token=False, add_bos_token=True)
+            self.model = model
 
     def prompt(self, input, question, system_context):
         # The number of tokens for the question and prompt formatting amounts to 33 tokens
@@ -149,7 +136,7 @@ if __name__ == "__main__":
     bnb_4bit_compute_dtype = "float16"
     bnb_4bit_quant_type = "nf4"
     use_nested_quant = False
-    output_dir = "./results"
+    output_dir = f"./results-{DATASET}-{FOLD}"
     num_train_epochs = 1
     fp16 = False
     bf16 = False
@@ -254,7 +241,7 @@ if __name__ == "__main__":
     # trainer.model.save_pretrained(new_model)
 
     print("Making inference...")
-    inference_model = llama2_platypus(model_name=model_name, model=model)
+    inference_model = llama2_platypus(size=MODEL_SIZE, model=model)
     system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable."""
     prompt = """{title}\n{text}"""
     randomizer = lambda: random.randint(0, 1)
@@ -310,3 +297,5 @@ if __name__ == "__main__":
         'val/num_invalid': num_invalid,
         'val/percent_invalid': percent_invalid
     }, step=wandb.run.step)
+
+    rmtree(f"./results-{DATASET}-{FOLD}")
