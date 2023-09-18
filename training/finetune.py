@@ -143,8 +143,8 @@ if __name__ == "__main__":
     max_steps = -1
     warmup_ratio = 0.03
     group_by_length = True
-    save_steps = 1000
-    logging_steps = 500
+    save_steps = 100
+    logging_steps = 100
     max_seq_length = None
     packing = False
     device_map = {"": 0}
@@ -221,7 +221,8 @@ if __name__ == "__main__":
         lr_scheduler_type=lr_scheduler_type,
         report_to="all",
         evaluation_strategy="steps",
-        eval_steps=3000 
+        eval_steps=3000,
+        save_total_limit=3
     )
     # Set supervised fine-tuning parameters
     trainer = SFTTrainer(
