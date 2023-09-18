@@ -179,17 +179,14 @@ if __name__ == "__main__":
         bnb_4bit_compute_dtype=compute_dtype,
         bnb_4bit_use_double_quant=use_nested_quant,
     )
-    if os.exists(output_dir):
-        ckpts = [ckpt for ckpt in os.listdir(output_dir) if ckpt.startswith("checkpoint")]
-        latest_ckpt = sorted([int(ckpt.split("-")[1]) for ckpt in ckpts])[-1]
-        ckpt_path = f"checkpoint-{latest_ckpt}"
+    
 
-        model = AutoModelForCausalLM.from_pretrained(
-            ckpt_path,
-            quantization_config=bnb_config,
-            # load_in_8bit=True,
-            device_map=device_map
-        )
+    model = AutoModelForCausalLM.from_pretrained(
+        model_name,
+        quantization_config=bnb_config,
+        # load_in_8bit=True,
+        device_map=device_map
+    )
 
     model.config.use_cache = False
     model.config.pretraining_tp = 1
@@ -238,7 +235,7 @@ if __name__ == "__main__":
         args=training_arguments,
         packing=packing,
     )
-    trainer.train()
+    trainer.train(resume_from_checkpoint=True)
     # trainer.model.save_pretrained(new_model)
 
     print("Making inference...")
