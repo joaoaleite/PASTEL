@@ -221,7 +221,7 @@ if __name__ == "__main__":
         lr_scheduler_type=lr_scheduler_type,
         report_to="all",
         evaluation_strategy="steps",
-        eval_steps=5  # Evaluate every 20 steps
+        eval_steps=3000 
     )
     # Set supervised fine-tuning parameters
     trainer = SFTTrainer(
