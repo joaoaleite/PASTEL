@@ -236,7 +236,13 @@ if __name__ == "__main__":
         args=training_arguments,
         packing=packing,
     )
-    trainer.train(resume_from_checkpoint=True)
+    
+    if os.path.exists(output_dir) and any(fname.startswith("checkpoint") for fname in os.listdir(output_dir)):
+        resume_from_checkpoint = True
+    else:
+        resume_from_checkpoint = False
+
+    trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     # trainer.model.save_pretrained(new_model)
 
     print("Making inference...")
