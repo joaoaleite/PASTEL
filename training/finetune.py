@@ -144,7 +144,7 @@ if __name__ == "__main__":
     warmup_ratio = 0.03
     group_by_length = True
     save_steps = 25
-    logging_steps = 5
+    logging_steps = 100
     max_seq_length = None
     packing = False
     device_map = {"": 0}
@@ -179,13 +179,18 @@ if __name__ == "__main__":
         bnb_4bit_compute_dtype=compute_dtype,
         bnb_4bit_use_double_quant=use_nested_quant,
     )
+    if os.exists(output_dir):
+        ckpts = [ckpt for ckpt in os.listdir(output_dir) if ckpt.startswith("checkpoint")]
+        latest_ckpt = sorted([int(ckpt.split("-")[1]) for ckpt in ckpts])[-1]
+        ckpt_path = f"checkpoint-{latest_ckpt}"
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_name,
-        quantization_config=bnb_config,
-        # load_in_8bit=True,
-        device_map=device_map
-    )
+        model = AutoModelForCausalLM.from_pretrained(
+            ckpt_path,
+            quantization_config=bnb_config,
+            # load_in_8bit=True,
+            device_map=device_map
+        )
+
     model.config.use_cache = False
     model.config.pretraining_tp = 1
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
@@ -294,4 +299,4 @@ if __name__ == "__main__":
         'val/percent_invalid': percent_invalid
     }, step=wandb.run.step)
 
-    rmtree(f"./results-{DATASET}-{FOLD}")
+    # rmtree(f"./results-{DATASET}-{FOLD}")
