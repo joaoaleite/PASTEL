@@ -127,7 +127,7 @@ if __name__ == "__main__":
     bnb_4bit_compute_dtype = "float16"
     bnb_4bit_quant_type = "nf4"
     use_nested_quant = False
-    output_dir = f"./results-{DATASET}-{FOLD}"
+    output_dir = f"./finetuning/results-{DATASET}-{FOLD}"
     num_train_epochs = 1
     fp16 = False
     bf16 = False
@@ -222,7 +222,7 @@ if __name__ == "__main__":
         report_to="all",
         evaluation_strategy="steps",
         eval_steps=3000,
-        save_total_limit=3
+        save_total_limit=3,
     )
     # Set supervised fine-tuning parameters
     trainer = SFTTrainer(
