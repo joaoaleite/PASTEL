@@ -143,8 +143,8 @@ if __name__ == "__main__":
     max_steps = -1
     warmup_ratio = 0.03
     group_by_length = True
-    save_steps = 25
-    logging_steps = 100
+    save_steps = 50
+    logging_steps = 500
     max_seq_length = None
     packing = False
     device_map = {"": 0}
