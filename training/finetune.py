@@ -143,7 +143,7 @@ if __name__ == "__main__":
     max_steps = -1
     warmup_ratio = 0.03
     group_by_length = True
-    save_steps = 50
+    save_steps = 1000
     logging_steps = 500
     max_seq_length = None
     packing = False
@@ -208,7 +208,7 @@ if __name__ == "__main__":
         gradient_accumulation_steps=gradient_accumulation_steps,
         optim=optim,
         save_steps=save_steps,
-        load_best_model_at_end=True,
+        load_best_model_at_end=False,
         logging_steps=logging_steps,
         learning_rate=learning_rate,
         weight_decay=weight_decay,
