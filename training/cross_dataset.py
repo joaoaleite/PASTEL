@@ -37,18 +37,6 @@ class llama2_platypus():
         ans = self.tokenizer.decode(ans[0])
         ans = ans.split("### Response:")[1].strip()
         return ans
-
-    def prompt(self, input, question, system_context):
-        # The number of tokens for the question and prompt formatting amounts to 33 tokens
-        # so we can use 4064 tokens for the input text. Will use 4050 to leave some room.
-        truncate_to = 4050
-        input = self.tokenizer.decode(self.tokenizer.encode(input, return_tensors='pt', truncation=True, max_length=truncate_to, add_special_tokens=False)[0]) # ensure the text will fit 4096 tokens
-        prompt = f"### Instruction:\n{system_context}\n\n### Input:\n{input.strip()}\n\n{question.strip()}\n\n### Response:\n"
-        # ans1 = self.get_next_word_probs(prompt, allow_abstain)
-        ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to(self.device), max_new_tokens=1, num_beams=1, do_sample=False)
-        ans = self.tokenizer.decode(ans[0])
-        ans = ans.split("### Response:")[1].strip()
-        return ans
     
 def aux_get_train_test_fold(fold, dataset, model_size, model_name="llama2_platypus", num_splits=10):
     assert fold < num_splits
@@ -61,6 +49,7 @@ def aux_get_train_test_fold(fold, dataset, model_size, model_name="llama2_platyp
 
         if fold == j:
             return train_df, test_df
+        
         
 def get_train_test_fold(fold, train_dataset, test_dataset, model_size, model_name="llama2_platypus"):
     train_df, _ = aux_get_train_test_fold(fold=fold, dataset=train_dataset, model_name=model_name, model_size=model_size)
@@ -167,7 +156,6 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
 
         inference_model = llama2_platypus(size=MODEL_SIZE, model=model)
         system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable."""
-        prompt = """{title}\n{text}"""
         randomizer = lambda: random.randint(0, 1)
         def class_mapper(answer):
             if answer.lower().startswith("no") or answer.lower().startswith("false"):
@@ -179,12 +167,11 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
 
             return category
 
-
         preds = []
         targets = []
         for i, article_row in tqdm(enumerate(df_test.sample(frac=1).itertuples()), total=len(df_test)):
             system_context_zs = system_context.format(abstain_context="")
-            input = prompt.format(title=article_row.title, text=article_row.text)
+            input = article_row.text # already contains title \n text
             question = "Does this article contain misinformation? (Yes/No)"
             ans = inference_model.prompt(input=input, question=question, system_context=system_context_zs)
         
