@@ -1,9 +1,6 @@
 import pandas as pd
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import WandbLogger
 from pytorch_lightning.utilities import rank_zero_only
-from model import TransformersClassifier, FakeDataset
 from sklearn.model_selection import StratifiedKFold
 from snorkel.labeling.model import LabelModel
 import argparse
@@ -56,26 +53,20 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
         "fold": fold
     }
 
-    logger = WandbLogger(
-        project="prompted_credibility_cross_dataset",
-        name=f"{training_method}-TRAIN:{train_dataset}-TEST:{test_dataset}",
-        log_model=False
-    )
 
-    if rank_zero_only.rank == 0:
-        logger.experiment.config.update(
-            experiment_config
-        )
+    wandb.init(project="prompted_credibility_cross_dataset", name=f"{training_method}-TRAIN:{train_dataset}-TEST:{test_dataset}")
+    for k, v in experiment_config.items():
+        wandb.config[k] = v
 
-        wandb.define_metric('val/f1_macro', summary='max')
-        wandb.define_metric('val/acc', summary='max')
-        wandb.define_metric('val/precision', summary='max')
-        wandb.define_metric('val/recall', summary='max')
-        wandb.define_metric('val/loss', summary='min')
-        wandb.define_metric('val/false_positive_rate', summary='min')
-        wandb.define_metric('val/true_negative_rate', summary='max')
-        wandb.define_metric('val/false_negative_rate', summary='min')
-        wandb.define_metric('val/true_positive_rate', summary='max')
+    wandb.define_metric('val/f1_macro', summary='max')
+    wandb.define_metric('val/acc', summary='max')
+    wandb.define_metric('val/precision', summary='max')
+    wandb.define_metric('val/recall', summary='max')
+    wandb.define_metric('val/loss', summary='min')
+    wandb.define_metric('val/false_positive_rate', summary='min')
+    wandb.define_metric('val/true_negative_rate', summary='max')
+    wandb.define_metric('val/false_negative_rate', summary='min')
+    wandb.define_metric('val/true_positive_rate', summary='max')
 
     df_train, df_test = get_train_test_fold(fold=fold, train_dataset=train_dataset, test_dataset=test_dataset, model_size=model_size, model_name=model_name)
     
