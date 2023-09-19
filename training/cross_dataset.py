@@ -5,7 +5,7 @@ from snorkel.labeling.model import LabelModel
 import argparse
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
-from peft import set_peft_model_state_dict
+from peft import set_peft_model_state_dict, get_peft_model, LoraConfig
 from transformers import AutoModelForCausalLM, BitsAndBytesConfig
 import wandb
 import torch
@@ -144,14 +144,25 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
             bnb_4bit_compute_dtype=torch.bfloat16
         )
         model = AutoModelForCausalLM.from_pretrained(
-            model_name,
+            "garage-bAInd/Platypus2-70B",
             quantization_config=bnb_config,
             device_map="auto"
         )
 
+        lora_r = 8
+        lora_alpha = 16
+        lora_dropout= 0.05
+        peft_config = LoraConfig(
+            lora_alpha=lora_alpha,
+            lora_dropout=lora_dropout,
+            r=lora_r,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(model, peft_config)
         model_path = f"finetuning/results-{train_dataset}-{fold}/"
-        latest_step = sorted([folder.split("-")[1] for folder in os.listir(model_path)], reverse=True).pop()
-        best_model_path = os.path.join(model_path, latest_step, "adapter_model.bin")
+        latest_step = sorted([folder.split("-")[1] for folder in os.listdir(model_path) if folder.startswith("checkpoint")], reverse=True).pop()
+        best_model_path = os.path.join(model_path, f"checkpoint-{latest_step}", "adapter_model.bin")
         adapters_weights = torch.load(best_model_path)
 
         print("loading checkpoint:", best_model_path)
