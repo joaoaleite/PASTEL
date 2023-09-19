@@ -37,7 +37,6 @@ def parse_arguments():
     
     parser.add_argument("--device_num", type=int, default=0)
     parser.add_argument("--fold", type=int, required=True)
-    parser.add_argument("--model_size", type=int, choices=[7, 13, 70], required=True)
     parser.add_argument("--model_name", type=str, default="llama2_platypus")
     parser.add_argument("--train_dataset", type=str, required=True)
     parser.add_argument("--test_dataset", type=str, required=True)
@@ -119,7 +118,7 @@ if __name__ == "__main__":
     TRAIN_DATASET = args.train_dataset
     FOLD = args.fold
     TEST_DATASET = args.test_dataset
-    MODEL_SIZE = args.model_size
+    MODEL_SIZE = 70
     MODEL_NAME = args.model_name
     TRAINING_METHOD = args.training_method
 
