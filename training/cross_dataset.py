@@ -6,7 +6,7 @@ import argparse
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig
 from peft import set_peft_model_state_dict, get_peft_model, LoraConfig
-from transformers import AutoModelForCausalLM, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig, GenerationConfig
 import wandb
 import torch
 import os
@@ -33,7 +33,9 @@ class llama2_platypus():
         input = self.tokenizer.decode(self.tokenizer.encode(input, return_tensors='pt', truncation=True, max_length=truncate_to, add_special_tokens=False)[0]) # ensure the text will fit 4096 tokens
         prompt = f"### Instruction:\n{system_context}\n\n### Input:\n{input.strip()}\n\n{question.strip()}\n\n### Response:\n"
         # ans1 = self.get_next_word_probs(prompt, allow_abstain)
-        ans = self.model.generate(self.tokenizer.encode(prompt, return_tensors='pt').to("cuda"), max_new_tokens=1, num_beams=1, do_sample=False)
+        genconfig = GenerationConfig(max_new_tokens=1, num_beams=1, do_sample=False)
+        inputs = {"inputs": self.tokenizer.encode(prompt, return_tensors='pt').to("cuda"), "generation_config": genconfig}
+        ans = self.model.generate(**inputs)
         ans = self.tokenizer.decode(ans[0])
         ans = ans.split("### Response:")[1].strip()
         return ans
@@ -153,7 +155,6 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
 
         print("loading checkpoint:", best_model_path)
         set_peft_model_state_dict(model, adapters_weights)  # set LoRA weights
-
         inference_model = llama2_platypus(size=MODEL_SIZE, model=model)
         system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable."""
         randomizer = lambda: random.randint(0, 1)
