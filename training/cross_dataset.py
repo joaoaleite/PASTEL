@@ -40,31 +40,38 @@ class llama2_platypus():
         ans = ans.split("### Response:")[1].strip()
         return ans
     
-def aux_get_train_test_fold(fold, dataset, model_size, model_name="llama2_platypus", num_splits=10):
-    assert fold < num_splits
+# def aux_get_train_test_fold(fold, dataset, model_size, model_name="llama2_platypus", num_splits=10):
+#     assert fold < num_splits
     
-    dataset_path = f"data/processed/{dataset}/{model_name}/{model_size}/{dataset}.csv"
-    df = pd.read_csv(dataset_path)
-    skf = StratifiedKFold(n_splits=num_splits, shuffle=True, random_state=SEED)
-    for j, (train_idxs, test_idxs) in enumerate(skf.split(range(len(df)), y=df["objective_true"].to_numpy())):
-        train_df, test_df = df.iloc[train_idxs], df.iloc[test_idxs]
+#     dataset_path = f"data/processed/{dataset}/{model_name}/{model_size}/{dataset}.csv"
+#     df = pd.read_csv(dataset_path)
+#     skf = StratifiedKFold(n_splits=num_splits, shuffle=True, random_state=SEED)
+#     for j, (train_idxs, test_idxs) in enumerate(skf.split(range(len(df)), y=df["objective_true"].to_numpy())):
+#         train_df, test_df = df.iloc[train_idxs], df.iloc[test_idxs]
 
-        if fold == j:
-            return train_df, test_df
+#         if fold == j:
+#             return train_df, test_df
         
         
-def get_train_test_fold(fold, train_dataset, test_dataset, model_size, model_name="llama2_platypus"):
-    train_df, _ = aux_get_train_test_fold(fold=fold, dataset=train_dataset, model_name=model_name, model_size=model_size)
-    _, test_df = aux_get_train_test_fold(fold=fold, dataset=test_dataset, model_name=model_name, model_size=model_size)
+# def get_train_test_fold(fold, train_dataset, test_dataset, model_size, model_name="llama2_platypus"):
+#     train_df, _ = aux_get_train_test_fold(fold=fold, dataset=train_dataset, model_name=model_name, model_size=model_size)
+#     _, test_df = aux_get_train_test_fold(fold=fold, dataset=test_dataset, model_name=model_name, model_size=model_size)
+
+#     return train_df, test_df
+
+def get_train_test(train_dataset, test_dataset, model_size=70, model_name="llama2_platypus"):
+    dataset_path = f"data/processed/{train_dataset}/{model_name}/{model_size}/{train_dataset}.csv"
+    train_df = pd.read_csv(dataset_path)
+    
+    dataset_path = f"data/processed/{test_dataset}/{model_name}/{model_size}/{test_dataset}.csv"
+    test_df = pd.read_csv(dataset_path)
 
     return train_df, test_df
 
-        
 def parse_arguments():
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--device_num", type=int, default=0)
-    parser.add_argument("--fold", type=int, required=True)
     parser.add_argument("--model_name", type=str, default="llama2_platypus")
     parser.add_argument("--train_dataset", type=str, required=True)
     parser.add_argument("--test_dataset", type=str, required=True)
@@ -74,14 +81,13 @@ def parse_arguments():
     return args
 
 
-def main(fold, training_method, train_dataset, test_dataset, model_size, model_name):
+def main(training_method, train_dataset, test_dataset, model_size, model_name):
     experiment_config = {
         "train_dataset": train_dataset,
         "test_dataset": test_dataset,
         "model_size": model_size,
         "model_name": model_name,
         "training_method": training_method,
-        "fold": fold
     }
 
 
@@ -99,7 +105,7 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
     wandb.define_metric('val/false_negative_rate', summary='min')
     wandb.define_metric('val/true_positive_rate', summary='max')
 
-    df_train, df_test = get_train_test_fold(fold=fold, train_dataset=train_dataset, test_dataset=test_dataset, model_size=model_size, model_name=model_name)
+    df_train, df_test = get_train_test(train_dataset=train_dataset, test_dataset=test_dataset, model_size=model_size, model_name=model_name)
     
     X_train = df_train["text"].tolist()
     X_test = df_test["text"].tolist()
@@ -148,7 +154,7 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
             task_type="CAUSAL_LM",
         )
         model = get_peft_model(model, peft_config)
-        model_path = f"finetuning/results-{train_dataset}-{fold}/"
+        model_path = f"finetuning/results-{train_dataset}-0/"
         latest_step = sorted([folder.split("-")[1] for folder in os.listdir(model_path) if folder.startswith("checkpoint")], reverse=True).pop()
         best_model_path = os.path.join(model_path, f"checkpoint-{latest_step}", "adapter_model.bin")
         adapters_weights = torch.load(best_model_path)
@@ -170,6 +176,7 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
 
         preds = []
         targets = []
+        model.eval()
         for i, article_row in tqdm(enumerate(df_test.sample(frac=1).itertuples()), total=len(df_test)):
             system_context_zs = system_context.format(abstain_context="")
             input = article_row.text # already contains title \n text
@@ -179,7 +186,7 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
             label = class_mapper(ans)
 
             preds.append(label)
-            targets.append(article_row.objective)
+            targets.append(article_row.objective_true)
 
         num_invalid = len([v for v in preds if v == -1])
         preds = [v if v != -1 else randomizer() for v in preds]
@@ -213,14 +220,12 @@ def main(fold, training_method, train_dataset, test_dataset, model_size, model_n
 if __name__ == "__main__":
     args = parse_arguments()
     TRAIN_DATASET = args.train_dataset
-    FOLD = args.fold
     TEST_DATASET = args.test_dataset
     MODEL_SIZE = 70
     MODEL_NAME = args.model_name
     TRAINING_METHOD = args.training_method
 
     main(
-        fold=FOLD,
         training_method=TRAINING_METHOD,
         train_dataset=TRAIN_DATASET,
         test_dataset=TEST_DATASET,
