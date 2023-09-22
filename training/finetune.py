@@ -14,13 +14,10 @@ from transformers import (
 )
 from peft import LoraConfig, set_peft_model_state_dict
 from trl import SFTTrainer
-import random
 import argparse
 import wandb
 import torch
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score
 import os
-from shutil import rmtree
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -37,7 +34,6 @@ def parse_arguments():
     
     return args
 
-
 def get_train_test_fold(fold, dataset, num_splits=10):
     assert fold < num_splits
 
@@ -45,13 +41,12 @@ def get_train_test_fold(fold, dataset, num_splits=10):
     prompt = "### Instruction:\n{system_context}\n\n### Input:\n{text}\n\n### Response:\n{label}"
     SEED = 42
 
-    dataset_path = f"data/datasets/{dataset}.csv"
+    dataset_path = f"data/processed/{dataset}/{model_name}/70/{dataset}.csv"
     df = pd.read_csv(dataset_path)
-    df = df.fillna("")
-    df["prompt"] = df.apply(lambda x: prompt.format(text=(x["title"]+"\n"+x["text"]).strip(), system_context=system_context, label="Yes" if x["objective"] == 1 else "No"), axis=1)
-    df = df[["title", "text", "prompt", "objective"]]
+    df["prompt"] = df.apply(lambda x: prompt.format(text=(x["text"]).strip(), system_context=system_context, label="Yes" if x["objective_true"] == 1 else "No"), axis=1)
+    df = df[["text", "prompt", "objective_true"]]
     skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=SEED)
-    for j, (train_idxs, test_idxs) in enumerate(skf.split(range(len(df)), y=df["objective"].to_numpy())):
+    for j, (train_idxs, test_idxs) in enumerate(skf.split(range(len(df)), y=df["objective_true"].to_numpy())):
         train_df, test_df = df.iloc[train_idxs], df.iloc[test_idxs]
 
         if fold == j:
@@ -143,8 +138,8 @@ if __name__ == "__main__":
     max_steps = -1
     warmup_ratio = 0.03
     group_by_length = True
-    save_steps = 100
-    logging_steps = 100
+    save_steps = 5 if DATASET != "gossipcop" else 100
+    logging_steps = 5
     max_seq_length = None
     packing = False
     device_map = {"": 0}
@@ -222,7 +217,7 @@ if __name__ == "__main__":
         report_to="all",
         evaluation_strategy="steps",
         eval_steps=3000,
-        save_total_limit=3,
+        save_total_limit=1,
     )
     # Set supervised fine-tuning parameters
     trainer = SFTTrainer(
@@ -244,63 +239,3 @@ if __name__ == "__main__":
 
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     # trainer.model.save_pretrained(new_model)
-
-    print("Making inference...")
-    inference_model = llama2_platypus(size=MODEL_SIZE, model=model)
-    system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable."""
-    prompt = """{title}\n{text}"""
-    randomizer = lambda: random.randint(0, 1)
-    def class_mapper(answer):
-        if answer.lower().startswith("no") or answer.lower().startswith("false"):
-            category = 0
-        elif answer.lower().startswith("yes") or answer.lower().startswith("true"):
-            category = 1
-        else:
-            category = -1
-
-        return category
-
-
-    preds = []
-    targets = []
-    for i, article_row in enumerate(test_df.sample(frac=1).itertuples()):
-        system_context_zs = system_context.format(abstain_context="")
-        input = prompt.format(title=article_row.title, text=article_row.text)
-        question = "Does this article contain misinformation? (Yes/No)"
-        ans = inference_model.prompt(input=input, question=question, system_context=system_context_zs)
-       
-        label = class_mapper(ans)
-
-        preds.append(label)
-        targets.append(article_row.objective)
-
-    num_invalid = len([v for v in preds if v == -1])
-    percent_invalid = num_invalid/len(targets)
-    preds = [v if v != -1 else randomizer() for v in preds]
-
-    val_acc = accuracy_score(targets, preds)
-    val_f1_macro = f1_score(targets, preds, average='macro', zero_division=0.0)
-
-    tn, fp, fn, tp = confusion_matrix(targets, preds).ravel()
-    false_positive_rate = fp / (fp + tn)
-    true_negative_rate = tn / (tn + fp)
-    false_negative_rate = fn / (fn + tp)
-    true_positive_rate = tp / (tp + fn)
-
-    precision = precision_score(targets, preds, zero_division=0.0)
-    recall = recall_score(targets, preds, zero_division=0.0)
-
-    wandb.log({
-        'val/acc': val_acc,
-        'val/f1_macro': val_f1_macro,
-        'val/false_positive_rate': false_positive_rate,
-        'val/true_negative_rate': true_negative_rate,
-        'val/false_negative_rate': false_negative_rate,
-        'val/true_positive_rate': true_positive_rate,
-        'val/precision': precision,
-        'val/recall': recall,
-        'val/num_invalid': num_invalid,
-        'val/percent_invalid': percent_invalid
-    }, step=wandb.run.step)
-
-    # rmtree(f"./results-{DATASET}-{FOLD}")
