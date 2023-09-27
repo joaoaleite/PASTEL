@@ -1,7 +1,7 @@
 # Adapted from https://github.com/mshumer/gpt-llm-trainer and https://github.com/arielnlee/Platypus/blob/main/finetune.py
 
 import pandas as pd
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from datasets import Dataset
 from transformers import (
     AutoModelForCausalLM,
@@ -19,12 +19,15 @@ import wandb
 import torch
 import os
 
+os.environ["WANDB__SERVICE_WAIT"]=300
+
 def parse_arguments():
     parser = argparse.ArgumentParser()
     
     # Define the arguments
     parser.add_argument("--device_num", type=int, default=0)
-    parser.add_argument("--fold", type=int, required=True)
+    parser.add_argument("--fold", type=int, default=None)
+    parser.add_argument("--fraction", type=float, required=None)
     parser.add_argument("--model_size", type=int, choices=[7, 13, 70], required=True)
     parser.add_argument("--model_name", type=str, default="llama2_platypus")
     parser.add_argument("--dataset", type=str, required=True)
@@ -51,6 +54,22 @@ def get_train_test_fold(fold, dataset, model_name="llama2_platypus", num_splits=
 
         if fold == j:
             return train_df, test_df
+        
+def get_datasets_fraction(dataset, frac, model_name="llama2_platypus"):
+    assert frac <= 1.0
+
+    system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable."""
+    prompt = "### Instruction:\n{system_context}\n\n### Input:\n{text}\n\n### Response:\n{label}"
+    SEED = 42
+
+    dataset_path = f"data/processed/{dataset}/{model_name}/70/{dataset}.csv"
+    df = pd.read_csv(dataset_path)
+    df["prompt"] = df.apply(lambda x: prompt.format(text=(x["text"]).strip(), system_context=system_context, label="Yes" if x["objective_true"] == 1 else "No"), axis=1)
+    df = df[["text", "prompt", "objective_true"]]
+    df_train, df_test = train_test_split(df, train_size=0.8, random_state=SEED)
+    df_train = df_train.sample(frac=frac, random_state=SEED) # Get a fraction of the training set
+
+    return df_train, df_test
     
 class SavePeftModelCallback(TrainerCallback):
     def on_save(
@@ -91,6 +110,7 @@ if __name__ == "__main__":
     FOLD = args.fold
     MODEL_SIZE = args.model_size
     MODEL_NAME = args.model_name
+    FRACTION = args.fraction
 
     model_name = f"garage-bAInd/Platypus2-{MODEL_SIZE}B"
     lora_r = 8
@@ -121,9 +141,11 @@ if __name__ == "__main__":
     max_seq_length = None
     packing = False
     device_map = {"": 0}
-    train_df, test_df = get_train_test_fold(FOLD, DATASET)
-
-    wandb.init(project="prompted_credibility", name=f"{DATASET}-{MODEL_SIZE}-fold{FOLD}")
+    if FOLD is not None:
+        train_df, test_df = get_train_test_fold(FOLD, DATASET)
+    else:
+        train_df, test_df = get_datasets_fraction(DATASET, FRACTION)
+    wandb.init(project="prompted_credibility", name=f"{DATASET}-{MODEL_SIZE}-{FOLD if FOLD is not None else FRACTION}")
     wandb.config["dataset"] = DATASET
     wandb.config["fold"] = FOLD
     wandb.config["model_size"] = MODEL_SIZE
