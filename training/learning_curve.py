@@ -1,86 +1,103 @@
 import pandas as pd
-from torch.utils.data import DataLoader
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import WandbLogger
-from pytorch_lightning.utilities import rank_zero_only
-from model import TransformersClassifier, FakeDataset
-from sklearn.model_selection import train_test_split, StratifiedKFold
+from sklearn.model_selection import train_test_split
 from snorkel.labeling.model import LabelModel
 import argparse
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score
 import wandb
+from peft import set_peft_model_state_dict, get_peft_model, LoraConfig
+from transformers import AutoModelForCausalLM, BitsAndBytesConfig, GenerationConfig, AutoTokenizer
+from tqdm import tqdm
+import random
+import os
+import torch
 
 SEED = 42
 pl.seed_everything(SEED, workers=True)
 
+class llama2_platypus():
+    def __init__(self, size, model):
+        if size in [7, 13, 70]:
+            model_name = f"garage-bAInd/Platypus2-{size}B"
+        else:
+            raise Exception(f"Size {size} not available for Llama. Choose 7, 13 or 70.")
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, add_eos_token=False, add_bos_token=True)
+        self.model = model
+
+    def prompt(self, input, question, system_context):
+        # The number of tokens for the question and prompt formatting amounts to 33 tokens
+        # so we can use 4064 tokens for the input text. Will use 4050 to leave some room.
+        truncate_to = 4050
+        input = self.tokenizer.decode(self.tokenizer.encode(input, return_tensors='pt', truncation=True, max_length=truncate_to, add_special_tokens=False)[0]) # ensure the text will fit 4096 tokens
+        prompt = f"### Instruction:\n{system_context}\n\n### Input:\n{input.strip()}\n\n{question.strip()}\n\n### Response:\n"
+        # ans1 = self.get_next_word_probs(prompt, allow_abstain)
+        genconfig = GenerationConfig(max_new_tokens=1, num_beams=1, do_sample=False)
+        inputs = {"inputs": self.tokenizer.encode(prompt, return_tensors='pt').to("cuda"), "generation_config": genconfig}
+        ans = self.model.generate(**inputs)
+        ans = self.tokenizer.decode(ans[0])
+        ans = ans.split("### Response:")[1].strip()
+        return ans
+    
 def parse_arguments():
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--device_num", type=int, default=0)
-    parser.add_argument("--fold", type=int, required=True)
-    parser.add_argument("--model_size", type=int, choices=[7, 13, 70], required=True)
+    parser.add_argument("--model_size", type=int, choices=[7, 13, 70], default=70)
     parser.add_argument("--model_name", type=str, default="llama2_platypus")
     parser.add_argument("--dataset", type=str, required=True)
-    parser.add_argument("--end_classifier_name", type=str, default="roberta-base")
+    parser.add_argument("--fraction", type=float, required=True)
+    parser.add_argument("--training_method", choices=["ws", "ft"], required=True)
 
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--learning_rate", type=float, default=5e-5)
-    parser.add_argument("--num_epochs", type=int, default=20)
-    parser.add_argument("--warmup_steps", type=int, default=100)
-    parser.add_argument("--weight_decay", type=float, default=0.0)
     args = parser.parse_args()
     
     return args
 
-def get_train_test_split(step, dataset, model_name, model_size):
-    dataset_path = f"data/processed/{dataset}/{model_name}/{model_size}/{dataset}.csv"
+def get_datasets_fraction(dataset, frac, model_name="llama2_platypus"):
+    assert frac <= 1.0
+
+    system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable."""
+    prompt = "### Instruction:\n{system_context}\n\n### Input:\n{text}\n\n### Response:\n{label}"
+    SEED = 42
+
+    dataset_path = f"data/processed/{dataset}/{model_name}/70/{dataset}.csv"
     df = pd.read_csv(dataset_path)
-    train_df, test_df = train_test_split(df, train_size=0.7, random_state=SEED)
+    df["prompt"] = df.apply(lambda x: prompt.format(text=(x["text"]).strip(), system_context=system_context, label="Yes" if x["objective_true"] == 1 else "No"), axis=1)
+    df_train, df_test = train_test_split(df, train_size=0.8, random_state=SEED)
+    df_train = df_train.sample(frac=frac, random_state=SEED) # Get a fraction of the training set
 
-    train_df_subset = train_df.iloc[:int(len(train_df)*step//10)] # get {step*10}% of the train data
+    return df_train, df_test
 
-    return train_df_subset, test_df
-
-def get_train_test_fold(fold, step, dataset, model_size, model_name="llama2_platypus", num_splits=10):
-    assert fold < num_splits
-    
-    dataset_path = f"data/processed/{dataset}/{model_name}/{model_size}/{dataset}.csv"
-    df = pd.read_csv(dataset_path)
-    skf = StratifiedKFold(n_splits=10, shuffle=True, random_state=SEED)
-    for j, (train_idxs, test_idxs) in enumerate(skf.split(range(len(df)), y=df["objective_true"].to_numpy())):
-        train_df, test_df = df.iloc[train_idxs], df.iloc[test_idxs]
-        train_df_subset = train_df.iloc[:int(len(train_df)*step//10)] # get (step*10)% of the train set
-
-        if fold == j:
-            return train_df_subset, test_df
-
-def main(fold, dataset, model_size, model_name, pretrained_name, hyperparameters):
+def main(dataset, model_size, model_name, fraction, training_method):
     experiment_config = {
         "dataset": dataset,
         "model_size": model_size,
         "model_name": model_name,
-        "fold": fold
+        "fraction": fraction,
+        "training_method": training_method
     }
 
-    logger = WandbLogger(
-        project="prompted_credibility-learning_curve",
-        name=f"{dataset}-{model_name}-{model_size}-fold{fold}",
-        log_model=False
-    )
-    if rank_zero_only.rank == 0:
-        logger.experiment.config.update(
-            experiment_config
-        )
+    wandb.init(project="prompted_credibility_learning_curve", name=f"{dataset}-{training_method}-FRAC:{fraction}")
+    for k, v in experiment_config.items():
+        wandb.config[k] = v
+
+    wandb.define_metric('val/f1_macro', summary='max')
+    wandb.define_metric('val/acc', summary='max')
+    wandb.define_metric('val/precision', summary='max')
+    wandb.define_metric('val/recall', summary='max')
+    wandb.define_metric('val/loss', summary='min')
+    wandb.define_metric('val/false_positive_rate', summary='min')
+    wandb.define_metric('val/true_negative_rate', summary='max')
+    wandb.define_metric('val/false_negative_rate', summary='min')
+    wandb.define_metric('val/true_positive_rate', summary='max')
 
     # Will train and evaluate models with increasing steps of +10% of the train set from 10% to 100%.
-    for step in range(1, 11):
-        df_train, df_test = get_train_test_fold(
-            fold=fold, step=step, dataset=dataset, model_name=model_name, model_size=model_size)
-        X_train = df_train["text"].tolist()
-        X_test = df_test["text"].tolist()
-        y_test_gold = df_test["objective_true"].to_numpy()
+    df_train, df_test = get_datasets_fraction(dataset, fraction)  
+    X_train = df_train["text"].tolist()
+    X_test = df_test["text"].tolist()
+    y_test_gold = df_test["objective_true"].to_numpy()
 
-
+    if training_method == "ws":
         # Train label model and infer test labels (label model approach)
         L_ws_train = df_train.iloc[:, :19].to_numpy()
         L_ws_test = df_test.iloc[:, :19].to_numpy()
@@ -99,100 +116,106 @@ def main(fold, dataset, model_size, model_name, pretrained_name, hyperparameters
         precision = precision_score(y_test_gold, y_pred_ws, zero_division=0.0)
         recall = recall_score(y_test_gold, y_pred_ws, zero_division=0.0)
 
-        # Train label model and infer silver labels to fine-tune a classifier (label model + end classifier approach)
-        L_ws = df_train.iloc[:, :19].to_numpy()
-        label_model = LabelModel(cardinality=2, device="cpu", verbose=False)
-        label_model.fit(L_ws, n_epochs=500, seed=SEED)
-        y_train = label_model.predict(L=L_ws, tie_break_policy="random")
+    elif training_method == "ft":
+        bnb_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type='nf4',
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=torch.bfloat16
+        )
+        model = AutoModelForCausalLM.from_pretrained(
+            "garage-bAInd/Platypus2-70B",
+            quantization_config=bnb_config,
+            device_map="auto"
+        )
 
-        wandb.log({
-                "weak_supervision/val_acc": val_acc,
-                "weak_supervision/f1_macro": val_f1_macro,
-                "weak_supervision/val_true_positive_rate": true_positive_rate,
-                "weak_supervision/val_false_positive_rate": false_positive_rate,
-                "weak_supervision/val_true_negative_rate": true_negative_rate,
-                "weak_supervision/val_false_negative_rate": false_negative_rate,
-                "weak_supervision/precision": precision,
-                "weak_supervision/recall": recall
-        }, step=step*10)
-    
-        # Score LLM zero-shot on test set
-        zs_test_pred = df_test["objective_pred"].to_numpy()
+        lora_r = 8
+        lora_alpha = 16
+        lora_dropout= 0.05
+        peft_config = LoraConfig(
+            lora_alpha=lora_alpha,
+            lora_dropout=lora_dropout,
+            r=lora_r,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(model, peft_config)
+        model_path = f"finetuning/results-{dataset}-{fraction}/"
+        latest_step = sorted([folder.split("-")[1] for folder in os.listdir(model_path) if folder.startswith("checkpoint")], reverse=True).pop()
+        best_model_path = os.path.join(model_path, f"checkpoint-{latest_step}", "adapter_model.bin")
+        adapters_weights = torch.load(best_model_path)
 
-        val_acc = accuracy_score(y_test_gold, zs_test_pred)
-        val_f1_macro = f1_score(y_test_gold, zs_test_pred, average='macro', zero_division=0.0)
+        print("loading checkpoint:", best_model_path)
+        set_peft_model_state_dict(model, adapters_weights)  # set LoRA weights
+        inference_model = llama2_platypus(size=MODEL_SIZE, model=model)
+        system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable."""
+        randomizer = lambda: random.randint(0, 1)
+        def class_mapper(answer):
+            if answer.lower().startswith("no") or answer.lower().startswith("false"):
+                category = 0
+            elif answer.lower().startswith("yes") or answer.lower().startswith("true"):
+                category = 1
+            else:
+                category = -1
 
-        tn, fp, fn, tp = confusion_matrix(y_test_gold, zs_test_pred).ravel()
+            return category
+
+        preds = []
+        targets = []
+        model.eval()
+        for i, article_row in tqdm(enumerate(df_test.sample(frac=1).itertuples()), total=len(df_test)):
+            system_context_zs = system_context.format(abstain_context="")
+            input = article_row.text # already contains title \n text
+            question = "Does this article contain misinformation? (Yes/No)"
+            ans = inference_model.prompt(input=input, question=question, system_context=system_context_zs)
+        
+            label = class_mapper(ans)
+
+            preds.append(label)
+            targets.append(article_row.objective_true)
+
+        num_invalid = len([v for v in preds if v == -1])
+        preds = [v if v != -1 else randomizer() for v in preds]
+
+        val_acc = accuracy_score(targets, preds)
+        val_f1_macro = f1_score(targets, preds, average='macro', zero_division=0.0)
+
+        tn, fp, fn, tp = confusion_matrix(targets, preds).ravel()
         false_positive_rate = fp / (fp + tn)
         true_negative_rate = tn / (tn + fp)
         false_negative_rate = fn / (fn + tp)
         true_positive_rate = tp / (tp + fn)
 
-        precision = precision_score(y_test_gold, zs_test_pred, zero_division=0.0)
-        recall = recall_score(y_test_gold, zs_test_pred, zero_division=0.0)
-        # Get LLM zero-shot train labels to train end classifier
-        y_train = df_train["objective_pred"].to_numpy()
+        precision = precision_score(targets, preds, zero_division=0.0)
+        recall = recall_score(targets, preds, zero_division=0.0)
 
-        wandb.log({
-                "zero_shot/val_acc": val_acc,
-                "zero_shot/f1_macro": val_f1_macro,
-                "zero_shot/val_true_positive_rate": true_positive_rate,
-                "zero_shot/val_false_positive_rate": false_positive_rate,
-                "zero_shot/val_true_negative_rate": true_negative_rate,
-                "zero_shot/val_false_negative_rate": false_negative_rate,
-                "zero_shot/precision": precision,
-                "zero_shot/recall": recall
-        }, step=step*10)
+    else:
+        raise Exception("Training method not supported.")
 
-        # Fine-tune classifier with gold labels
-        y_train = df_train["objective_true"].to_numpy()
-        
-        # Train the end classifier
-        trainset = FakeDataset(X_train, y_train, tokenizer_name=pretrained_name) # y_train are silver labels
-        testset = FakeDataset(X_test, y_test_gold, tokenizer_name=pretrained_name) # y_test_gold are gold labels
-
-        train_loader = DataLoader(trainset, batch_size=hyperparameters["batch_size"], shuffle=True)
-        val_loader = DataLoader(testset, batch_size=hyperparameters["batch_size"])
-
-        model = TransformersClassifier(
-            pretrained_name=pretrained_name,
-            num_classes=1,
-            learning_rate=hyperparameters["learning_rate"],
-            warmup_steps=hyperparameters["warmup_steps"],
-            weight_decay=hyperparameters["weight_decay"]
-        )
-
-        trainer = pl.Trainer(deterministic=True, max_epochs=hyperparameters["num_epochs"], logger=None)
-        trainer.fit(model, train_loader, val_loader)
-
-        # Log the scores of the best epoch
-        gl_best_scores = model.best_scores
-        gl_best_scores = {f"gl/{k}":v for k, v in gl_best_scores.items()}
-
-        wandb.log(gl_best_scores, step=step*10)
-
+    wandb.log({
+            "val/acc": val_acc,
+            "val/f1_macro": val_f1_macro,
+            "val/true_positive_rate": true_positive_rate,
+            "val/false_positive_rate": false_positive_rate,
+            "val/true_negative_rate": true_negative_rate,
+            "val/false_negative_rate": false_negative_rate,
+            "val/precision": precision,
+            "val/recall": recall
+    }, step=0)
+       
 args = parse_arguments()
 
 DATASET = args.dataset
-FOLD = args.fold
 MODEL_SIZE = args.model_size
 MODEL_NAME = args.model_name
 DEVICE_NUM = args.device_num
-PRETRAINED_NAME = args.end_classifier_name
-
-hyperparameters = {
-    "learning_rate": args.learning_rate,
-    "batch_size": args.batch_size,
-    "num_epochs": args.num_epochs,
-    "warmup_steps": args.warmup_steps,
-    "weight_decay": args.weight_decay
-}
+FRACTION = args.fraction
+TRAINING_METHOD = args.training_method
 
 main(
-    fold=FOLD,
     dataset=DATASET,
     model_name=MODEL_NAME,
     model_size=MODEL_SIZE,
-    pretrained_name=PRETRAINED_NAME,
-    hyperparameters=hyperparameters
+    fraction=FRACTION,
+    training_method=TRAINING_METHOD
 )
