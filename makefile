@@ -1,24 +1,11 @@
 extract_signals:
-	sbatch run.slurm $(dataset) 7
-	sbatch run.slurm $(dataset) 13
-	sbatch run.slurm $(dataset) 70
+	sbatch slurm_jobs/prompt.slurm $(dataset) 70
 
 extract_signals_all:
-	sbatch run.slurm politifact 7
-	sbatch run.slurm politifact 13
-	sbatch run.slurm politifact 70
-
-	sbatch run.slurm gossipcop 7
-	sbatch run.slurm gossipcop 13
-	sbatch run.slurm gossipcop 70
-
-	sbatch run.slurm celebritydataset 7
-	sbatch run.slurm celebritydataset 13
-	sbatch run.slurm celebritydataset 70
-
-	sbatch run.slurm fakenewsdataset 7
-	sbatch run.slurm fakenewsdataset 13
-	sbatch run.slurm fakenewsdataset 70
+	sbatch slurm_jobs/prompt.slurm politifact 70
+	sbatch slurm_jobs/prompt.slurm gossipcop 70
+	sbatch slurm_jobs/prompt.slurm celebritydataset 70
+	sbatch slurm_jobs/prompt.slurm fakenewsdataset 70
 
 train:
 	sbatch slurm_jobs/train_$(device).slurm $(dataset) 70 0 $(training_method)
@@ -55,16 +42,16 @@ cross-dataset:
 	sbatch slurm_jobs/crossdataset.slurm politifact celebritydataset ws 8
 	sbatch slurm_jobs/crossdataset.slurm politifact celebritydataset ws 9
 
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 0
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 1
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 2
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 3
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 4
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 5
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 6
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 7
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 8
-	sbatch slurm_jobs/crossdataset.slurm politifact gossipcop ws 9
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 0
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 1
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 2
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 3
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 4
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 5
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 6
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 7
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 8
+	sbatch slurm_jobs/crossdataset.slurm politifact fakenewsdataset ws 9
 
 	sbatch slurm_jobs/crossdataset.slurm fakenewsdataset gossipcop ws 0
 	sbatch slurm_jobs/crossdataset.slurm fakenewsdataset gossipcop ws 1

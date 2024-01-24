@@ -1,6 +1,19 @@
 slurm_jobs/
 *.slurm
 *.out
+*.pdf
+*.csv
+*.ipynb
+*.txt
+*.json
+*.jsonl
+*.yaml
+*.wandb
+finetuning/*
+results/*
+prompted_credibility/*
+*.bin
+latest-run
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
