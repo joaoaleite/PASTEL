@@ -74,6 +74,7 @@ def process(model, df, signal_df, verbose=False, rationales=False):
 
             # ZS Question
             system_context_zs = system_context.format(abstain_context="")
+            system_context_zs += " Afterwards, explain your answer by providing a rationale." if rationales else ""
             input_zs = prompt.format(title=article_row.title, text=article_row.text)
             question_zs = "Does this article contain misinformation? (Yes/No)"
             try:
@@ -113,6 +114,7 @@ def process(model, df, signal_df, verbose=False, rationales=False):
             processed = {}
             for j, question_row in enumerate(signal_df.itertuples()):
                 system_context_ws = system_context.format(abstain_context=abstain_context)
+                system_context_ws += " Afterwards, explain your answer by providing a rationale." if rationales else ""
                 input_ws = prompt.format(title=article_row.title, text=article_row.text)
                 question_ws = question_row.Question + " (Yes/Unsure/No)"
                 try:
@@ -156,7 +158,7 @@ if __name__ == "__main__":
     RATIONALES = args.rationales
 
     CACHE_FOLDER = f"data/caches/{DATASET}/{MODEL_NAME}/{MODEL_SIZE}"
-    CACHE_PATH = os.path.join(CACHE_FOLDER, "cache.jsonl")
+    CACHE_PATH = os.path.join(CACHE_FOLDER, "cache_rationales.jsonl")
     DATASET_PATH = f"data/datasets/{DATASET}.csv"
     SIGNALS_PATH = "data/signals.csv"
 
