@@ -1,5 +1,5 @@
 extract_signals:
-	sbatch slurm_jobs/prompt.slurm $(dataset) 70
+	sbatch slurm_jobs/prompt.slurm $(dataset)
 
 extract_signals_all:
 	sbatch slurm_jobs/prompt.slurm politifact 70
@@ -152,7 +152,6 @@ cross-dataset:
 	sbatch slurm_jobs/crossdataset.slurm celebritydataset gossipcop ws 8
 	sbatch slurm_jobs/crossdataset.slurm celebritydataset gossipcop ws 9
 
-	
 finetune:
 	sbatch slurm_jobs/finetune.slurm $(dataset) 70 0
 	sbatch slurm_jobs/finetune.slurm $(dataset) 70 1
@@ -176,15 +175,3 @@ learning_curve:
 	sbatch learning_curve.slurm $(dataset) 70 7
 	sbatch learning_curve.slurm $(dataset) 70 8
 	sbatch learning_curve.slurm $(dataset) 70 9
-
-finetune:
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 0
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 1
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 2
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 3
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 4
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 5
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 6
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 7
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 8
-	sbatch slurm_jobs/finetune.slurm $(dataset) 70 9

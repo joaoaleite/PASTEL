@@ -54,7 +54,7 @@ def dump_cache(line, p):
 
 
 # %%
-def process(model, df, signal_df, verbose=False, rationales=True):
+def process(model, df, signal_df, verbose=False, rationales=False):
     system_context = """You are a helpful and unbiased news verification assistant. You will be provided with the title and the full body of text of a news article. Then, you will answer further questions related to the given article. Ensure that your answers are grounded in reality, truthful and reliable.{abstain_context}"""
 
     prompt = """{title}\n{text}"""
@@ -116,7 +116,12 @@ def process(model, df, signal_df, verbose=False, rationales=True):
                 input_ws = prompt.format(title=article_row.title, text=article_row.text)
                 question_ws = question_row.Question + " (Yes/Unsure/No)"
                 try:
-                    answer_ws = model.prompt(input=input_ws, question=question_ws, system_context=system_context_ws)
+                    answer_ws = model.prompt(
+                        input=input_ws,
+                        question=question_ws,
+                        system_context=system_context_ws,
+                        max_new_tokens=256 if rationales else 1,
+                    )
                 except Exception as e:
                     print("ERROR", e)
                     break
@@ -127,10 +132,12 @@ def process(model, df, signal_df, verbose=False, rationales=True):
                     print(answer_ws)
 
                 processed[question_row._2] = category_ws
+                processed[question_row._2 + "_rationale"] = answer_ws
                 pbar.update(1)
 
             processed["objective_pred"] = category_zs
             processed["objective_true"] = true
+            processed["rationale_zs"] = answer_zs if rationales else ""
             processed["article_md5"] = article_row.article_md5
 
             if len(processed.keys()) == 22:
