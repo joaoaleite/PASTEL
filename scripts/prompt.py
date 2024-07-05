@@ -117,7 +117,6 @@ def process(model, df, signal_df, verbose=False, rationales=False):
         "You are a helpful and unbiased news verification assistant. You will be provided with the"
         " title and the full body of text of a news article. Then, you will answer further questions related"
         " to the given article. Ensure that your answers are grounded in reality,"
-        ""
         f" truthful and reliable.{abstain_context}"
     )
 
