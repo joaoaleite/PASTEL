@@ -5,7 +5,7 @@ Number,Crediblity Signal,Subject Type,Question
 4,Misleading about content,Title,Does the title of article fail to accurately reflect its content?
 5,Personal Perspective,Body,Does the article express the author’s opinion on the subject?
 6,Emotional Valence,Body,Does the article lack a neutral tone?
-7,Polarizing Language,Body,Does the article make use of polarising terms or make divisions into sharply contrasting groups or sets of opinions or beliefs?
+7,Polarising Language,Body,Does the article make use of polarising terms or make divisions into sharply contrasting groups or sets of opinions or beliefs?
 8,Call to Action,Body,"Does the article contain language that can be understood as a call to action, requesting readers to follow-through with a particular task or tells readers what to do?"
 9,Bias,Body,Does the article contain explicit or implicit biases?
 10,Inference,Body,Does the article make claims about correlation and causation?
