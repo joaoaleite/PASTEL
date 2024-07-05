@@ -30,12 +30,8 @@ def get_train_test(train_dataset, test_dataset):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-
-    parser.add_argument("--device_num", type=int, default=0)
-    parser.add_argument("--model_name", type=str, default="llama2_platypus")
     parser.add_argument("--train_dataset", type=str, required=True)
     parser.add_argument("--test_dataset", type=str, required=True)
-    parser.add_argument("--training_method", type=str, choices=["ws", "ft"])
     args = parser.parse_args()
 
     return args
@@ -134,7 +130,7 @@ def main(train_dataset, test_dataset):
         "roberta_f1": roberta_f1,
     }
 
-    with open(f"results_train_{train_dataset}_test{test_dataset}.json", "w") as f:
+    with open(f"results_train_{train_dataset}_test_{test_dataset}.json", "w") as f:
         json.dump(metrics, f, indent=4)
 
 
