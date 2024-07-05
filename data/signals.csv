@@ -1,0 +1,20 @@
+Number,Crediblity Signal,Subject Type,Question
+1,Evidence,Body,Does the article fail to present any supporting evidence or arguments to substantiate its claims?
+2,Explicitly Unverified Claims,Body,Does the article contain claims that are explicitly unverified?
+3,Clickbait,Title,Does the article contain any form of ‘clickbait’ in the title?
+4,Misleading about content,Title,Does the title of article fail to accurately reflect its content?
+5,Personal Perspective,Body,Does the article express the author’s opinion on the subject?
+6,Emotional Valence,Body,Does the article lack a neutral tone?
+7,Polarizing Language,Body,Does the article make use of polarising terms or make divisions into sharply contrasting groups or sets of opinions or beliefs?
+8,Call to Action,Body,"Does the article contain language that can be understood as a call to action, requesting readers to follow-through with a particular task or tells readers what to do?"
+9,Bias,Body,Does the article contain explicit or implicit biases?
+10,Inference,Body,Does the article make claims about correlation and causation?
+11,Expert Citation,Body,Does the article lack citations of experts in the subject?
+12,Document Citation,Body,Does the article lack citations of studies or documents to support its claims?
+13,Source Credibility,Body,Does the article cite sources that are not considered credible?
+14,Incorrect Spelling,Body,Does the article have significant misspellings and/or grammatical errors?
+15,Informal Tone,Body,Does the article make use of all caps or consecutive exclamation or question marks?
+16,Incivility,Body,Does the article make use of stereotypes and generalisations of groups of people?
+17,Impoliteness,Body,"Does the article contain insults, name-calling or profanity?"
+18,Sensationalism,Title/Body,Does the article make use of sensationalist claims?
+19,Reported by Other Sources,Body,Was the story on this article not reported by other reputable media outlets?
