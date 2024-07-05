@@ -1,5 +1,11 @@
 # PASTEL
+PASTEL (Prompted weAk Supervision wiTh crEdibility signaLs) is a weakly supervised approach that leverages large language models to extract credibility signals from web content, then further combines them to predict
+content veracity without using any ground truth labels. This repository contains the code base to reproduce the experiments presented in our paper [Weakly Supervised Veracity Classification with LLM-Predicted Credibility Signals]().
 
+
+![plot](./diagram.png)
+
+## Reproducing the paper
 To run the code, follow these steps:
 
 1. Place the dataset inside the ```data/datasets``` folder. Dataset files must be in a csv format and have the following columns: ```title,text,objective,article_id```.
@@ -38,10 +44,17 @@ To run the code, follow these steps:
 ## Other experiments
 To run the supporting experiments in the paper, ensure that the four datasets (FakeNewsAMT, Celebrity, PolitiFact, and GossipCop) have been processed and the extracted signals are in ```data/signals/``` (i.e., run the aforementioned steps until step 4).
 
-### Reproducing the LLaMa-FT baseline:
+### Reproducing the other baselines:
+**LLaMa-ZS:** The extracted signals file should contain a column named 'objective_pred', which is the zero-shot prediction for veracity (i.e., the output for the LLaMa-ZS baseline).
+
+**LLaMa-FT**: To fine-tune LLaMa, run the following script:
 ```shell
-   python3 scripts/finetune.py
+   python3 scripts/finetune.py --dataset mydataset --model_size 70 --fold 0
  ```
+This script will fine-tune the LLM for a specific fold of the dataset (from 0 to 10). To fully reproduce the experiment, you must run the script for all ten folds, and perform inference using the output models.
+
+**RoBERTa and BERT**:
+
 
 ### Cross-dataset classification
 For each pair of train and test datasets, run the following command:
@@ -52,3 +65,8 @@ A file named ```results_train_dataset1_test_dataset2.json``` should appear conta
 
 ### Signal Analysis
 Run the jupyter notebook ```scripts/signal_analysis.ipynb```.
+
+# Cite this work
+```
+TBA
+```
