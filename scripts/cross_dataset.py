@@ -61,11 +61,10 @@ def run_roberta(train_df, test_df):
 
     config = {"batch_size": 8, "learning_rate": 2e-5, "weight_decay": 0.01, "warmup_steps": 0, "train_epochs": 5}
 
-    train_df = train_df[["title", "text", "objective"]]
+    train_df = train_df[["text", "objective_true"]]
     train_df = train_df.fillna("")
     train_df = train_df[train_df["text"] != ""]
-    train_df["label"] = train_df["objective"]
-    train_df["text"] = train_df["title"] + "\n" + train_df["text"]
+    train_df["label"] = train_df["objective_true"]
 
     train_dataset = Dataset.from_pandas(train_df)
     train_dataset = train_dataset.map(tokenize_function, batched=True)
@@ -100,11 +99,10 @@ def run_roberta(train_df, test_df):
     # train the model
     trainer.train()
 
-    test_df = test_df[["title", "text", "objective"]]
+    test_df = test_df[["text", "objective_true"]]
     test_df = test_df.fillna("")
     test_df = test_df[test_df["text"] != ""]
-    test_df["label"] = test_df["objective"]
-    test_df["text"] = test_df["title"] + "\n" + test_df["text"]
+    test_df["label"] = test_df["objective_true"]
 
     test_dataset = Dataset.from_pandas(test_df)
     test_dataset = test_dataset.map(tokenize_function, batched=True)
