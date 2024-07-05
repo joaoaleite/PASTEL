@@ -8,7 +8,7 @@ content veracity without using any ground truth labels. This repository contains
 ## Reproducing the paper
 To run the code, follow these steps:
 
-1. Place the dataset inside the ```data/datasets``` folder. Dataset files must be in a csv format and have the following columns: ```title,text,objective,article_id```.
+1. Place the datasets inside the ```data/datasets``` folder. Dataset files must be in a csv format and have the following columns: ```title,text,objective,article_id```.
    
    * title: title of the news article (string).
    * text: body of text of the news article (string).
