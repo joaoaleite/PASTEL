@@ -9,7 +9,6 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
 
     # Define the arguments
-    parser.add_argument("--model_size", type=int, choices=[7, 13, 70], required=True)
     parser.add_argument("--model_name", type=str, default="llama2_platypus")
     parser.add_argument("--dataset", type=str, required=True)
 
@@ -23,12 +22,11 @@ if __name__ == "__main__":
     random.seed(42)
     args = parse_arguments()
     DATASET = args.dataset
-    MODEL_SIZE = args.model_size
     MODEL_NAME = args.model_name
 
     # %%
-    CACHE_FOLDER = f"data/caches/{DATASET}/"
-    CACHE_PATH = os.path.join(CACHE_FOLDER, "cache.jsonl")
+    CACHE_FOLDER = f"data/cache/"
+    CACHE_PATH = os.path.join(CACHE_FOLDER, f"{DATASET}.jsonl")
     DATASET_PATH = f"data/datasets/{DATASET}.csv"
     PROCESSED_FOLDER = "data/signals/"
 
@@ -36,15 +34,15 @@ if __name__ == "__main__":
         os.makedirs(PROCESSED_FOLDER)
 
     df_fn = pd.read_csv(DATASET_PATH)
-    df_fn = df_fn[["article_md5", "title", "text"]]
+    df_fn = df_fn[["article_id", "title", "text"]]
     df_fn = df_fn.fillna("")
     df_fn["text"] = df_fn.apply(lambda x: x["title"] + "\n" + x["text"], axis=1)
-    df_fn = df_fn[["article_md5", "text"]]
+    df_fn = df_fn[["article_id", "text"]]
     total_examples = len(df_fn)
 
     df = pd.read_json(CACHE_PATH, lines=True)
-    df = df.merge(df_fn, on="article_md5")
-    df = df.drop_duplicates(["article_md5"])
+    df = df.merge(df_fn, on="article_id")
+    df = df.drop_duplicates(["article_id"])
     num_processed_examples = len(df)
     num_randomized = len(df[df["objective_pred"] == -1])
     df.loc[df["objective_pred"] == -1, "objective_pred"] = df.loc[df["objective_pred"] == -1]["objective_pred"].apply(
