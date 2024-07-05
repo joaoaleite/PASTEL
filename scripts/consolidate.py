@@ -25,7 +25,7 @@ if __name__ == "__main__":
     MODEL_NAME = args.model_name
 
     # %%
-    CACHE_FOLDER = f"data/cache/"
+    CACHE_FOLDER = "data/cache/"
     CACHE_PATH = os.path.join(CACHE_FOLDER, f"{DATASET}.jsonl")
     DATASET_PATH = f"data/datasets/{DATASET}.csv"
     PROCESSED_FOLDER = "data/signals/"
