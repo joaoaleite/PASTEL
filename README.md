@@ -62,8 +62,8 @@ This script will fine-tune the LLM for a specific fold of the dataset (from 0 to
 **RoBERTa and BERT**: to reproduce the state-of-the-art supervised models, run the following script:
 
 ```shell
-python3 scripts/bert_roberta.py --pretrained_model roberta-base
-python3 scripts/bert_roberta.py --pretrained_model bert-base-uncased
+python3 scripts/bert_roberta.py --dataset mydataset --pretrained_model roberta-base
+python3 scripts/bert_roberta.py --dataset mydataset --pretrained_model bert-base-uncased
 ```
 The script will output files ```results_roberta-base``` and ```results_bert-base-uncased``` with the cross validation scores for the two baselines.
 

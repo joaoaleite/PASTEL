@@ -58,7 +58,7 @@ if __name__ == "__main__":
         print(dataset)
         dataset_results = []
 
-        data_path = os.path.join("../data", "datasets", f"{dataset}.csv")
+        data_path = os.path.join("data", "datasets", f"{dataset}.csv")
         df = pd.read_csv(data_path)
         df = df[["title", "text", "objective"]]
         df = df.fillna("")
@@ -78,9 +78,6 @@ if __name__ == "__main__":
             train_dataset.set_format("torch", columns=["input_ids", "attention_mask", "label"])
             # define the model
             model = AutoModelForSequenceClassification.from_pretrained(PRETRAINED_NAME, num_labels=2)
-
-            # if not os.path.exists("models"):
-            #     os.makedirs("models")
 
             training_args = TrainingArguments(
                 evaluation_strategy="epoch",
