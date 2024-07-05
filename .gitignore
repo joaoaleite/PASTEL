@@ -1,17 +1,10 @@
-slurm_jobs/
-*.slurm
 *.out
 *.pdf
-*.csv
-*.ipynb
 *.txt
 *.json
 *.jsonl
 *.yaml
 *.wandb
-finetuning/*
-results/*
-prompted_credibility/*
 *.bin
 latest-run
 

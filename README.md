@@ -7,7 +7,7 @@ To run the code, follow these steps:
    * title: title of the news article (string).
    * text: body of text of the news article (string).
    * objective: misinformation label, either 0 (non-misinformation) or 1 (misinformation) (integer).
-   * article_id: a unique identifier for each article (str).
+   * article_id: a unique identifier for each article (string).
 
 2. Install the dependencies.
    ```shell
