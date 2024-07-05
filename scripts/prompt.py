@@ -193,16 +193,17 @@ def process(model, df, signal_df, verbose=False, rationales=False):
                     print(answer_ws)
 
                 processed[question_row._2] = category_ws
-                processed[question_row._2 + "_rationale"] = answer_ws
+                if rationales:
+                    processed[question_row._2 + "_rationale"] = answer_ws
                 pbar.update(1)
 
             processed["objective_pred"] = category_zs
             processed["objective_true"] = true
-            processed["rationale_zs"] = answer_zs if rationales else ""
+            if rationales:
+                processed["rationale_zs"] = answer_zs if rationales else ""
             processed["article_id"] = article_row.article_id
 
-            if len(processed.keys()) == 22:
-                dump_cache(processed, CACHE_PATH)
+            dump_cache(processed, CACHE_PATH)
             pbar.update(1)
 
 
@@ -216,7 +217,7 @@ if __name__ == "__main__":
     RATIONALES = args.rationales
     DATASET = args.dataset
     CACHE_FOLDER = "data/cache"
-    CACHE_PATH = os.path.join(CACHE_FOLDER, "cache_rationales.jsonl")
+    CACHE_PATH = os.path.join(CACHE_FOLDER, f"{DATASET}.jsonl")
     DATASET_PATH = f"data/datasets/{DATASET}.csv"
     SIGNALS_PATH = "data/signals.csv"
 
