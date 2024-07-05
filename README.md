@@ -7,7 +7,7 @@ To run the code, follow these steps:
    * title: title of the news article (string).
    * text: body of text of the news article (string).
    * objective: misinformation label, either 0 (non-misinformation) or 1 (misinformation) (integer).
-   * article_id: a unique identifier for each article (string).
+   * article_id: unique identifier for each article (e.g., hash the title + text into an id) (string).
 
 2. Install the dependencies.
    ```shell
@@ -36,7 +36,7 @@ To run the code, follow these steps:
    Given that the processed signals are in ```data/signals/mydataset.csv```, there should now be a file named ```mydataset_metrics.json``` in the root folder with the average metrics computed with 10-fold cross validation.
 
 ## Other experiments
-To run the supporting experiments in the paper, ensure that the four datasets (FakeNewsAMT, Celebrity, PolitiFact, and GossipCop) have been processed and the extracted signals are in ```data/signals/```.
+To run the supporting experiments in the paper, ensure that the four datasets (FakeNewsAMT, Celebrity, PolitiFact, and GossipCop) have been processed and the extracted signals are in ```data/signals/``` (i.e., run the aforementioned steps until step 4).
 
 ### Reproducing the LLaMa-FT baseline:
 ```shell
