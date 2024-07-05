@@ -41,30 +41,38 @@ To run the code, follow these steps:
    ```
    Given that the processed signals are in ```data/signals/mydataset.csv```, there should now be a file named ```mydataset_metrics.json``` in the root folder with the average metrics computed with 10-fold cross validation.
 
-## Other experiments
+## Supporting Experiments
 To run the supporting experiments in the paper, ensure that the four datasets (FakeNewsAMT, Celebrity, PolitiFact, and GossipCop) have been processed and the extracted signals are in ```data/signals/``` (i.e., run the aforementioned steps until step 4).
+
+### Error Analysis
+Run the jupyer notebook ```scripts/error_analysis.ipynb```.
+
+### Signal Analysis
+Run the jupyter notebook ```scripts/signal_analysis.ipynb```.
 
 ### Reproducing the other baselines:
 **LLaMa-ZS:** The extracted signals file should contain a column named 'objective_pred', which is the zero-shot prediction for veracity (i.e., the output for the LLaMa-ZS baseline).
 
 **LLaMa-FT**: To fine-tune LLaMa, run the following script:
 ```shell
-   python3 scripts/finetune.py --dataset mydataset --model_size 70 --fold 0
+python3 scripts/finetune.py --dataset mydataset --model_size 70 --fold 0
  ```
 This script will fine-tune the LLM for a specific fold of the dataset (from 0 to 10). To fully reproduce the experiment, you must run the script for all ten folds, and perform inference using the output models.
 
-**RoBERTa and BERT**:
+**RoBERTa and BERT**: to reproduce the state-of-the-art supervised models, run the following script:
 
+```shell
+python3 scripts/bert_roberta.py --pretrained_model roberta-base
+python3 scripts/bert_roberta.py --pretrained_model bert-base-uncased
+```
+The script will output files ```results_roberta-base``` and ```results_bert-base-uncased``` with the cross validation scores for the two baselines.
 
 ### Cross-dataset classification
 For each pair of train and test datasets, run the following command:
 ```shell
-   python3 scripts/cross_dataset --train_dataset dataset1 --test_dataset dataset2
+python3 scripts/cross_dataset --train_dataset dataset1 --test_dataset dataset2
 ```
 A file named ```results_train_dataset1_test_dataset2.json``` should appear containing the classification results for the two datasets. Run again for all pairs of datasets to fully reproduce the experiment.
-
-### Signal Analysis
-Run the jupyter notebook ```scripts/signal_analysis.ipynb```.
 
 # Cite this work
 ```
