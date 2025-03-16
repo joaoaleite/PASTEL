@@ -1,6 +1,6 @@
 # PASTEL
 PASTEL (Prompted weAk Supervision wiTh crEdibility signaLs) is a weakly supervised approach that leverages large language models to extract credibility signals from web content, then further combines them to predict
-content veracity without using any ground truth labels. This repository contains the code base to reproduce the experiments presented in our paper [Weakly Supervised Veracity Classification with LLM-Predicted Credibility Signals]().
+content veracity without using any ground truth labels. This repository contains the code base to reproduce the experiments presented in our paper [Weakly Supervised Veracity Classification with LLM-Predicted Credibility Signals](https://epjdatascience.springeropen.com/articles/10.1140/epjds/s13688-025-00534-0).
 
 
 ![plot](./diagram.png)
