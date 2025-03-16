@@ -76,13 +76,16 @@ A file named ```results_train_dataset1_test_dataset2.json``` should appear conta
 
 # Cite this work
 ```
-@misc{leite2024weaklysupervisedveracityclassification,
-      title={Weakly Supervised Veracity Classification with LLM-Predicted Credibility Signals}, 
-      author={João A. Leite and Olesya Razuvayevskaya and Kalina Bontcheva and Carolina Scarton},
-      year={2024},
-      eprint={2309.07601},
-      archivePrefix={arXiv},
-      primaryClass={cs.CL},
-      url={https://arxiv.org/abs/2309.07601}, 
+@article{jaleite-pastel-2025,
+	author = {{Leite, João A.} and {Razuvayevskaya, Olesya} and {Bontcheva, Kalina} and {Scarton, Carolina}},
+	title = {Weakly supervised veracity classification with LLM-predicted credibility signals},
+	DOI= "10.1140/epjds/s13688-025-00534-0",
+	url= "https://doi.org/10.1140/epjds/s13688-025-00534-0",
+	journal = {EPJ Data Sci.},
+	year = 2025,
+	volume = 14,
+	number = 1,
+	pages = "16",
 }
+
 ```
